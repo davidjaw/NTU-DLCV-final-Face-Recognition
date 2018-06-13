@@ -62,12 +62,29 @@ class DataReader(object):
         tf_img_path, tf_label = tf.train.slice_input_producer([tf_img_path, tf_label], seed=self.seed)
 
         tf_img = tf.image.decode_jpeg(tf.read_file(tf_img_path), channels=3)
-        tf_img = tf.cast(tf_img, tf.float32)
-        # inception pre-processing
-        tf_img = (tf_img - .5) * 2
+        tf_img = tf.cast(tf_img, tf.float32) / 255.
+        h = int(218 / 5)
+        w = int(178 / 5)
         tf_img.set_shape([218, 178, 3])
+        tf_img = tf_img[h*2:h*4, w:w*4, :]
+
+        if mode == 'train':
+            # data augmentation
+            tf_img = tf.image.random_flip_left_right(tf_img)
 
         tf_imgs, tf_labels = tf.train.batch([tf_img, tf_label], batch_size)
+
+        if mode == 'train':
+            # data augmentation
+            tf_imgs = tf.image.random_brightness(tf_imgs, max_delta=32. / 255.)
+            tf_imgs = tf.image.random_saturation(tf_imgs, lower=0.75, upper=1.25)
+            tf_imgs = tf.image.random_hue(tf_imgs, max_delta=.05)
+            tf_imgs = tf.clip_by_value(tf_imgs, 0., 1.)
+            tf.summary.image('in_image', tf_imgs, max_outputs=5)
+
+        # inception pre-processing
+        tf_imgs = (tf_imgs - .5) * 2
+        tf_imgs = tf.image.resize_bilinear(tf_imgs, [218, 178])
 
         return tf_imgs, tf_labels
 

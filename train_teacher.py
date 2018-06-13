@@ -12,6 +12,7 @@ def get_args():
     parser.add_argument('--weight_path', type=str, default='./log/', help='path to store/read weights')
     parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
     parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
+    parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
 
     return parser.parse_args()
 
@@ -59,13 +60,15 @@ def main(args):
     optim = tf.train.AdamOptimizer(1e-4)
     train_op = optim.minimize(train_loss)
 
-    train_params = tf.contrib.slim.get_variables()
+    train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
+    if args.load:
+        saver.restore(sess, args.weight_path + 'teacher.ckpt')
 
     train_writer = tf.summary.FileWriter(args.log_path, sess.graph)
     merged = tf.summary.merge_all(tf.GraphKeys.SUMMARIES)
@@ -89,7 +92,7 @@ def main(args):
             start_time = time.time()
 
         if step % SAVE_STEP == 0:
-            saver.save(sess, args.weight_path + 'teacher', step)
+            saver.save(sess, args.weight_path + 'teacher.ckpt', step)
             print('[Weights saved] weights saved at {}'.format(args.weight_path + 'teacher'))
 
         step += 1
