@@ -10,6 +10,7 @@ class DataReader(object):
     ):
         self.data_path = data_path
         self.seed = random_seed
+        self.train_data_raw, self.valid_data_raw = [None, None]
         self.train_img_path, self.train_label, self.valid_img_path, self.valid_label, self.dict_id, self.dict_class = \
             self._prepare_data()
 
@@ -27,6 +28,8 @@ class DataReader(object):
 
         train_data = read_ground_truth(train_gt_file)
         valid_data = read_ground_truth(valid_gt_file)
+        self.train_data_raw = train_data
+        self.valid_data_raw = valid_data
 
         # embed id into class
         dict_id_to_class, dict_class_to_id = [{}, {}]
@@ -67,4 +70,30 @@ class DataReader(object):
         tf_imgs, tf_labels = tf.train.batch([tf_img, tf_label], batch_size)
 
         return tf_imgs, tf_labels
+
+    def debug_cv(self):
+        import cv2
+        for i in range(len(self.dict_class.keys())):
+            class_id = self.dict_class[i]
+            train_imgs = list(filter(lambda x: x[1] == class_id, self.train_data_raw))
+            valid_imgs = list(filter(lambda x: x[1] == class_id, self.valid_data_raw))
+            train_imgs = [cv2.imread(self.data_path + 'train/' + x[0]) for x in train_imgs]
+            valid_imgs = [cv2.imread(self.data_path + 'val/' + x[0]) for x in valid_imgs]
+
+            h, w = train_imgs[0].shape[:-1]
+            h = int(h / 5)
+            w = int(w / 5)
+
+            # train_imgs = np.concatenate(train_imgs, 1)
+            # valid_imgs = np.concatenate(valid_imgs, 1)
+            train_imgs = np.concatenate([x[h*2:h*4, w:w*4] for x in train_imgs], 1)
+            valid_imgs = np.concatenate([x[h*2:h*4, w:w*4] for x in valid_imgs], 1)
+
+            cv2.imshow('train_img', train_imgs)
+            cv2.imshow('valid_img', valid_imgs)
+            cv2.waitKey()
+
+
+# data_reader = DataReader('./dlcv_final_2_dataset/')
+# data_reader.debug_cv()
 
