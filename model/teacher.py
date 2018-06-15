@@ -20,10 +20,12 @@ class TeacherNetwork(object):
     def __init__(self):
         pass
 
-    def build_network(self, in_batch, class_num, reuse, is_train):
+    def build_network(self, in_batch, class_num, reuse, is_train, dropout=.8):
+        if not is_train:
+            dropout = 1
         return inception_resnet_v1(in_batch,
                                    is_training=is_train,
-                                   dropout_keep_prob=.8 if is_train else 1,
+                                   dropout_keep_prob=dropout,
                                    reuse=reuse,
                                    bottleneck_layer_size=class_num
                                    )

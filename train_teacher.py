@@ -3,6 +3,8 @@ import model
 from data_reader import DataReader
 import time
 import argparse
+import numpy as np
+import utils
 
 
 def get_args():
@@ -22,6 +24,7 @@ def main(args):
 
     LOG_STEP = 50
     SAVE_STEP = 500
+    LOG_ALL_TRAIN_PARAMS = False
 
     with tf.variable_scope('Data_Generator'):
         data_reader = DataReader(
@@ -32,9 +35,16 @@ def main(args):
 
     network = model.TeacherNetwork()
     logits, net_dict = network.build_network(train_x, class_num=len(data_reader.dict_class.keys()), reuse=False, is_train=True)
-    v_logits, v_net_dict = network.build_network(valid_x, class_num=len(data_reader.dict_class.keys()), reuse=True, is_train=True)
+    v_logits, v_net_dict = network.build_network(valid_x, class_num=len(data_reader.dict_class.keys()), reuse=True, is_train=True, dropout=1)
 
     with tf.variable_scope('compute_loss'):
+        # Norm for the prelogits
+        prelogits = net_dict['PreLogitsFlatten']
+        eps = 1e-4
+        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * 1e-5
+
+        # center_loss = utils.center_loss(prelogits, train_y, .95, len(data_reader.dict_class.keys()))
+
         train_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y)
         valid_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=v_logits, labels=valid_y)
         train_loss = tf.reduce_mean(train_loss)
@@ -58,10 +68,14 @@ def main(args):
         tf.summary.scalar('valid_accu', valid_accu)
 
     optim = tf.train.AdamOptimizer(1e-4)
-    train_op = optim.minimize(train_loss)
+    train_op = optim.minimize(train_loss + prelogits_norm)
 
     train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
+
+    if LOG_ALL_TRAIN_PARAMS:
+        for i in train_params:
+            tf.summary.histogram(i.op.name, i)
 
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -79,17 +93,38 @@ def main(args):
     tf.Graph().finalize()
     start_time = time.time()
     step = 0
+    v_list, v_stop_cnt = [[], 0]
     while step * args.batch_size / len(data_reader.train_label) < args.target_epoch:
         _ = sess.run(train_op)
 
         if step % LOG_STEP == 0:
             time_cost = (time.time() - start_time) / LOG_STEP if step > 0 else 0
-            loss, accu, v_accu, s = sess.run([train_loss, train_accu, valid_accu, merged])
+            loss, v_loss, accu, v_accu, s = sess.run([train_loss, valid_loss, train_accu, valid_accu, merged])
             train_writer.add_summary(s, step)
             print('======================= Step {} ====================='.format(step))
             print('[Log file saved] {:.2f} secs for one step'.format(time_cost))
             print('Current loss: {:.2f}, train accu: {:.2f}%, valid accu: {:.2f}%'.format(loss, accu, v_accu))
             start_time = time.time()
+
+            # # early stop: mean over previous 5 validation loss, stop training if 5 times greater
+            # v_loss_mean = np.mean(v_list) if step > 0 else 0
+            # if v_loss > v_loss_mean and step > 0:
+            #     for i in range(10):
+            #         v_loss_chk = sess.run(valid_loss)
+            #         if v_loss_chk < v_loss_mean:
+            #             break
+            #         else:
+            #             v_stop_cnt += 1
+            # else:
+            #     v_stop_cnt = 0
+            #
+            # v_list.append(v_loss)
+            # v_list = v_list[-5:]
+            #
+            # if v_stop_cnt >= 5:
+            #     saver.save(sess, args.weight_path + 'teacher.ckpt', step)
+            #     print('[Weights saved] weights saved at {}'.format(args.weight_path + 'teacher'))
+            #     break
 
         if step % SAVE_STEP == 0:
             saver.save(sess, args.weight_path + 'teacher.ckpt', step)

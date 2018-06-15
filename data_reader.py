@@ -1,5 +1,11 @@
 import tensorflow as tf
 import numpy as np
+from scipy import misc
+
+
+def random_rotate_image(image):
+    angle = np.random.uniform(low=-15.0, high=15.0)
+    return misc.imrotate(image, angle, 'bicubic')
 
 
 class DataReader(object):
@@ -62,15 +68,19 @@ class DataReader(object):
         tf_img_path, tf_label = tf.train.slice_input_producer([tf_img_path, tf_label], seed=self.seed)
 
         tf_img = tf.image.decode_jpeg(tf.read_file(tf_img_path), channels=3)
-        tf_img = tf.cast(tf_img, tf.float32) / 255.
         h = int(218 / 5)
         w = int(178 / 5)
         tf_img.set_shape([218, 178, 3])
         tf_img = tf_img[h*2:h*4, w:w*4, :]
+        tf_img_shape = tf_img.get_shape().as_list()
 
         if mode == 'train':
             # data augmentation
             tf_img = tf.image.random_flip_left_right(tf_img)
+            tf_img = tf.py_func(random_rotate_image, [tf_img], tf.uint8)
+            tf_img.set_shape(tf_img_shape)
+
+        tf_img = tf.cast(tf_img, tf.float32) / 255.
 
         tf_imgs, tf_labels = tf.train.batch([tf_img, tf_label], batch_size)
 
