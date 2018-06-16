@@ -86,10 +86,25 @@ class DataReader(object):
 
         if mode == 'train':
             # data augmentation
+            # random scale
+            tf_imgs_scaled = tf.image.resize_bilinear(tf_imgs, [int(x * 1.2) for x in tf_img_shape[:-1]])
+            tf_imgs_scaled = tf.image.resize_image_with_crop_or_pad(tf_imgs_scaled, tf_img_shape[0], tf_img_shape[1])
+            random_scale = tf.random_uniform([100], 0., 1.)
+            tf_imgs = tf.where(tf.greater(random_scale, .7), tf_imgs, tf_imgs_scaled)
+
+            # gray-scale augmentation
+            tf_imgs_gray = tf.reduce_mean(tf_imgs, -1, keepdims=True)
+            tf_imgs_gray = tf.concat([tf_imgs_gray, tf_imgs_gray, tf_imgs_gray], -1)
+
+            # build-in color-based augmentations
             tf_imgs = tf.image.random_brightness(tf_imgs, max_delta=32. / 255.)
             tf_imgs = tf.image.random_saturation(tf_imgs, lower=0.75, upper=1.25)
             tf_imgs = tf.image.random_hue(tf_imgs, max_delta=.05)
             tf_imgs = tf.clip_by_value(tf_imgs, 0., 1.)
+
+            random_gray = tf.random_uniform([100], 1., 0.)
+            tf_imgs = tf.where(tf.greater(random_gray, .8), tf_imgs_gray, tf_imgs)
+
             tf.summary.image('in_image', tf_imgs, max_outputs=5)
 
         # inception pre-processing

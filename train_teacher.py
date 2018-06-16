@@ -15,6 +15,7 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
     parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
+    parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
 
     return parser.parse_args()
 
@@ -25,6 +26,8 @@ def main(args):
     LOG_STEP = 50
     SAVE_STEP = 500
     LOG_ALL_TRAIN_PARAMS = False
+    PRELOGIT_NORM_FACTOR = 0
+    CENTER_LOSS_FACTOR = 1e-5
 
     with tf.variable_scope('Data_Generator'):
         data_reader = DataReader(
@@ -41,9 +44,10 @@ def main(args):
         # Norm for the prelogits
         prelogits = net_dict['PreLogitsFlatten']
         eps = 1e-4
-        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * 1e-5
+        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * PRELOGIT_NORM_FACTOR
 
-        # center_loss = utils.center_loss(prelogits, train_y, .95, len(data_reader.dict_class.keys()))
+        center_loss, _ = utils.center_loss(prelogits, train_y, .95, len(data_reader.dict_class.keys()))
+        center_loss *= CENTER_LOSS_FACTOR
 
         train_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y)
         valid_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=v_logits, labels=valid_y)
@@ -67,8 +71,13 @@ def main(args):
         tf.summary.scalar('valid_loss', valid_loss)
         tf.summary.scalar('valid_accu', valid_accu)
 
-    optim = tf.train.AdamOptimizer(1e-4)
-    train_op = optim.minimize(train_loss + prelogits_norm)
+    if args.optim_type == 'adam':
+        optim = tf.train.AdamOptimizer(1e-4)
+    elif args.optim_type == 'adagrad':
+        optim = tf.train.AdagradOptimizer(1e-4)
+    else:
+        optim = tf.train.GradientDescentOptimizer(1e-4)
+    train_op = optim.minimize(train_loss + prelogits_norm + center_loss)
 
     train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
