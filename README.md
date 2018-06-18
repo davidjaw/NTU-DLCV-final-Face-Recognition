@@ -4,8 +4,8 @@ Face Recognition
 ## Todos
 
 ### Implementation
-- [ ] Implement baseline network with tensorflow
-- [ ] Train baseline network with good performance
+- [x] Implement baseline network with tensorflow
+- [x] Train baseline network with good performance
 - [ ] Implement Squeezenext with tensorflow
 - [ ] Train Squeezenext network (don't care about performance here)
 - [ ] Implement Teacher-Student training strategy
@@ -13,6 +13,12 @@ Face Recognition
 
 ### Presentation
 - [ ] Don't know yet.
+
+## Model comparison
+|  | Model size | # of parameters | Accuracy on Validation |
+| -------- | -------- | -------- | -------- |
+| Inception-ResNet | 124MB | 26,781,288 | 75.75% |
+| SqueezeNeXt | ~     | ~     | ~  |
 
 ## Materials
 ### Baseline model
