@@ -1,6 +1,9 @@
 # DLCV-final
 Face Recognition
 
+## Ongoing
+- training Inception-ResNet-v1 wihout **center loss** (YiJing)
+
 ## Todos
 
 ### Implementation
@@ -18,7 +21,7 @@ Face Recognition
 |  | Model size | # of parameters | Accuracy on Validation |
 | -------- | -------- | -------- | -------- |
 | Inception-ResNet | 124MB | 26,781,288 | 75.75% |
-| SqueezeNeXt | ~     | ~     | ~  |
+| SqueezeNeXt | 15MB     | 3,729,786     | ~  |
 
 ## Materials
 ### Baseline model
