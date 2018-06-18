@@ -9,7 +9,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='Face recognition')
     parser.add_argument('--data_path', type=str, default='./dlcv_final_2_dataset/', help='path to dataset folder')
     parser.add_argument('--weight_path', type=str, default='./log/', help='path to store/read weights')
-    parser.add_argument('--model_name', type=str, default='teacher.ckpt-5500', help='filename of trained model')
+    parser.add_argument('--model_name', type=str, default='teacher.ckpt-224000', help='filename of trained model')
     parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
     return parser.parse_args()
 
