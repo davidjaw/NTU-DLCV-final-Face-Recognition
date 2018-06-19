@@ -47,6 +47,7 @@ def main(args):
     with tf.variable_scope('compute_loss'):
         train_loss = tf.squared_difference(logits, teacher_logits)
         train_loss = tf.reduce_mean(train_loss)
+        train_loss += tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y))
 
         train_output = tf.argmax(tf.nn.softmax(logits, -1), -1, output_type=tf.int32)
         train_accu = tf.where(tf.equal(train_output, train_y), tf.ones_like(train_output), tf.zeros_like(train_output))
