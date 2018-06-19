@@ -1,6 +1,11 @@
 # DLCV-final
 Face Recognition
 
+## Team Members
+R06942120 [Github](https://github.com/ljn3333)
+R06921076 [Github](https://github.com/YiJingLin)
+D06921016 [Github](https://github.com/davidjaw)
+
 ## Ongoing
 - training Inception-ResNet-v1 wihout **center loss** (YiJing)
 
@@ -9,8 +14,8 @@ Face Recognition
 ### Implementation
 - [x] Implement baseline network with tensorflow
 - [x] Train baseline network with good performance
-- [ ] Implement Squeezenext with tensorflow
-- [ ] Train Squeezenext network (don't care about performance here)
+- [x] Implement Squeezenext with tensorflow
+- [x] Train Squeezenext network (don't care about performance here)
 - [ ] Implement Teacher-Student training strategy
 - [ ] Train Squeezenext network under Teacher-Student policy **with better performance** than the typical one
 
@@ -21,7 +26,10 @@ Face Recognition
 |  | Model size | # of parameters | Accuracy on Validation |
 | -------- | -------- | -------- | -------- |
 | Inception-ResNet | 124MB | 26,781,288 | 75.75% |
-| SqueezeNeXt | 15MB     | 3,729,786     | ~  |
+| SqueezeNeXt | 15MB     | 3,729,786     | 65~70% |
+| SqueezeNeXt(T-S) | 15MB     | 3,729,786     | ~ |
+
+| T-S refers to Teacher-Student training strategy
 
 ## Materials
 ### Baseline model
