@@ -26,10 +26,10 @@ D06921016 [Github](https://github.com/davidjaw)
 |  | Model size | # of parameters | Accuracy on Validation |
 | -------- | -------- | -------- | -------- |
 | Inception-ResNet | 124MB | 26,781,288 | 75.75% |
-| SqueezeNeXt | 15MB     | 3,729,786     | 65~70% |
+| SqueezeNeXt | 15MB     | 3,729,786     | 71.28% |
 | SqueezeNeXt(T-S) | 15MB     | 3,729,786     | ~ |
 
-| T-S refers to Teacher-Student training strategy
+* T-S refers to Teacher-Student training strategy
 
 ## Materials
 ### Baseline model
