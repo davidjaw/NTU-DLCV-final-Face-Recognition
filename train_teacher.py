@@ -3,7 +3,6 @@ import model
 from data_reader import DataReader
 import time
 import argparse
-import numpy as np
 import utils
 
 
@@ -15,6 +14,7 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
     parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
+    parser.add_argument('--seaweed', action='store_true', help='Either to load pre-train weights or not')
     parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
 
     return parser.parse_args()
@@ -34,7 +34,24 @@ def main(args):
             data_path=args.data_path
         )
         train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train')
-        valid_x, valid_y = data_reader.get_instance(batch_size=args.batch_size, mode='valid')
+        valid_x, valid_y = data_reader.get_instance(batch_size=args.batch_size * 2, mode='valid')
+
+        if args.seaweed:
+            with tf.variable_scope('Seaweed_augmentation'):
+                # 218, 178
+                train_x = tf.where(tf.greater(tf.random_uniform([args.batch_size], 0., 1.), .65),
+                                   tf.where(tf.greater(tf.random_uniform((), 0., 1.), .5),
+                                            tf.where(tf.greater(tf.random_uniform((), 0., 1.), .5),
+                                                     tf.concat([train_x[:, :109], tf.zeros_like(train_x[:, :109])], 1),
+                                                     tf.concat([tf.zeros_like(train_x[:, :109]), train_x[:, 109:]], 1)),
+                                            tf.where(tf.greater(tf.random_uniform((), 0., 1.), .5),
+                                                     tf.concat([train_x[:, :, :89], tf.zeros_like(train_x[:, :, :89])], 2),
+                                                     tf.concat([tf.zeros_like(train_x[:, :, :89]), train_x[:, :, 89:]], 2))),
+                                   train_x)
+                debug_img_factor = 5
+                debug_train_x = tf.concat([train_x[x::debug_img_factor] for x in range(debug_img_factor)], 1)
+                debug_train_x = tf.concat([debug_train_x[x::debug_img_factor] for x in range(debug_img_factor)], 2)
+                tf.summary.image('seaweed_img', debug_train_x, max_outputs=10)
 
     network = model.TeacherNetwork()
     logits, net_dict = network.build_network(train_x, class_num=len(data_reader.dict_class.keys()), reuse=False, is_train=True)

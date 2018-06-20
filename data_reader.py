@@ -5,7 +5,8 @@ import os
 
 
 def random_rotate_image(image):
-    angle = np.random.uniform(low=-15.0, high=15.0)
+    angle = 30.
+    angle = np.random.uniform(low=-1 * angle, high=angle)
     return misc.imrotate(image, angle, 'bicubic')
 
 
