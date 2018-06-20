@@ -40,6 +40,7 @@ class DataReader(object):
         self.data_path = data_path
         self.seed = random_seed
         self.train_data_raw, self.valid_data_raw = [None, None]
+        self.dict_instance_id = {'train': {}, 'valid': {}}
         self.train_img_path, self.train_label, self.valid_img_path, self.valid_label, self.dict_id, self.dict_class = \
             self._prepare_data()
 
@@ -73,6 +74,12 @@ class DataReader(object):
             train_img_path.append('{}train/{}'.format(self.data_path, img_fn))
             train_label.append(dict_id_to_class[celeb_id])
 
+            # collect to dict
+            if celeb_id not in self.dict_instance_id['train']:
+                self.dict_instance_id['train'][celeb_id] = ['{}train/{}'.format(self.data_path, img_fn)]
+            else:
+                self.dict_instance_id['train'][celeb_id].append('{}train/{}'.format(self.data_path, img_fn))
+
         valid_img_path, valid_label = [[], []]
         for instance in valid_data:
             img_fn, celeb_id = instance
@@ -80,6 +87,12 @@ class DataReader(object):
                 raise KeyError('Celeb id not found: {}'.format(celeb_id))
             valid_img_path.append('{}val/{}'.format(self.data_path, img_fn))
             valid_label.append(dict_id_to_class[celeb_id])
+
+            # collect to dict
+            if celeb_id not in self.dict_instance_id['valid']:
+                self.dict_instance_id['valid'][celeb_id] = ['{}val/{}'.format(self.data_path, img_fn)]
+            else:
+                self.dict_instance_id['valid'][celeb_id].append('{}val/{}'.format(self.data_path, img_fn))
 
         return train_img_path, train_label, valid_img_path, valid_label, dict_id_to_class, dict_class_to_id
 
