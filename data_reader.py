@@ -126,7 +126,7 @@ class DataReader(object):
             # random scale
             tf_imgs_scaled = tf.image.resize_bilinear(tf_imgs, [int(x * 1.2) for x in tf_img_shape[:-1]])
             tf_imgs_scaled = tf.image.resize_image_with_crop_or_pad(tf_imgs_scaled, tf_img_shape[0], tf_img_shape[1])
-            random_scale = tf.random_uniform([100], 0., 1.)
+            random_scale = tf.random_uniform([batch_size], 0., 1.)
             tf_imgs = tf.where(tf.greater(random_scale, .7), tf_imgs, tf_imgs_scaled)
 
             # gray-scale augmentation
@@ -139,7 +139,7 @@ class DataReader(object):
             tf_imgs = tf.image.random_hue(tf_imgs, max_delta=.05)
             tf_imgs = tf.clip_by_value(tf_imgs, 0., 1.)
 
-            random_gray = tf.random_uniform([100], 1., 0.)
+            random_gray = tf.random_uniform([batch_size], 1., 0.)
             tf_imgs = tf.where(tf.greater(random_gray, .8), tf_imgs_gray, tf_imgs)
 
         # inception pre-processing
