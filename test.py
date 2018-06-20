@@ -10,7 +10,7 @@ def get_args():
     parser.add_argument('--data_path', type=str, default='./dlcv_final_2_dataset/', help='path to dataset folder')
     parser.add_argument('--test_data_path', type=str, default='./dlcv_final_2_dataset/test/', help='path to test folder')
     parser.add_argument('--weight_path', type=str, default='./weight/', help='path to store/read weights')
-    parser.add_argument('--model_name', type=str, default='teacher.ckpt-224000', help='filename of trained model')
+    parser.add_argument('--model_name', type=str, default='teacher.ckpt', help='filename of trained model')
     parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
     parser.add_argument('--out_path', type=str, default='./out/', help='path to output file')
     return parser.parse_args()

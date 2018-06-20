@@ -97,7 +97,7 @@ class DataReader(object):
 
         return train_img_path, train_label, valid_img_path, valid_label, dict_id_to_class, dict_class_to_id
 
-    def get_instance(self, batch_size, mode):
+    def get_instance(self, batch_size, mode, seaweed=False):
         img_path = self.train_img_path if mode == 'train' else self.valid_img_path
         label = self.train_label if mode == 'train' else self.valid_label
 
@@ -142,11 +142,41 @@ class DataReader(object):
             random_gray = tf.random_uniform([100], 1., 0.)
             tf_imgs = tf.where(tf.greater(random_gray, .8), tf_imgs_gray, tf_imgs)
 
-            tf.summary.image('in_image', tf_imgs, max_outputs=5)
-
         # inception pre-processing
         tf_imgs = (tf_imgs - .5) * 2
         tf_imgs = tf.image.resize_bilinear(tf_imgs, [218, 178])
+
+        if seaweed:
+            def np_seaweed_augment(imgs):
+                b, h, w, c = imgs.shape
+                np_mask = np.ones([b, h, w, c], np.float32)
+                vh, vw = [int(h / 5), int(w / 5)]
+                seaweed_length = np.random.randint(1, 3)
+                seaweed_start_index_w = np.random.randint(0, 3 * vw - 1)
+                seaweed_start_index_h = np.random.randint(0, 3 * vh - 1)
+                seeweed_w_range = np.arange(seaweed_start_index_w, seaweed_start_index_w + seaweed_length * vw)
+                seeweed_h_range = np.arange(seaweed_start_index_h, seaweed_start_index_h + seaweed_length * vh)
+                if np.random.rand() > .5:
+                    np_mask[:, seeweed_h_range] = 0.
+                else:
+                    np_mask[:, :, seeweed_w_range] = 0.
+
+                return imgs * np_mask
+
+            with tf.variable_scope('Seaweed_augmentation'):
+                # 218, 178
+                seaweed_img = tf.py_func(np_seaweed_augment, [tf_imgs], tf.float32)
+                seaweed_img2 = tf.py_func(np_seaweed_augment, [seaweed_img], tf.float32)
+                tf_imgs = tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .5),
+                                   tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .25),
+                                            seaweed_img,
+                                            seaweed_img2),
+                                   tf_imgs)
+
+        debug_img_factor = 5
+        debug_tf_imgs = tf.concat([tf_imgs[x::debug_img_factor] for x in range(debug_img_factor)], 1)
+        debug_tf_imgs = tf.concat([debug_tf_imgs[x::debug_img_factor] for x in range(debug_img_factor)], 2)
+        tf.summary.image('in_imgs', debug_tf_imgs, max_outputs=10)
 
         return tf_imgs, tf_labels
 
@@ -173,6 +203,17 @@ class DataReader(object):
             cv2.waitKey()
 
 
+# import cv2
 # data_reader = DataReader('./dlcv_final_2_dataset/')
-# data_reader.debug_cv()
-
+# x, y = data_reader.get_instance(100, 'train', True)
+# x = x / 2 + .5
+# debug_img_factor = 5
+# debug_x = tf.concat([x[xx::debug_img_factor] for xx in range(debug_img_factor)], 1)
+# x = tf.concat([debug_x[xx::debug_img_factor] for xx in range(debug_img_factor)], 2)
+# sess = tf.InteractiveSession()
+# coord = tf.train.Coordinator()
+# threads = tf.train.start_queue_runners(coord=coord, sess=sess)
+# while True:
+#     np_x = sess.run(x)
+#     cv2.imshow('img', np_x[0, :, :, ::-1])
+#     cv2.waitKey()

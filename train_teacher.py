@@ -33,25 +33,8 @@ def main(args):
         data_reader = DataReader(
             data_path=args.data_path
         )
-        train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train')
+        train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train', seaweed=args.seaweed)
         valid_x, valid_y = data_reader.get_instance(batch_size=args.batch_size * 2, mode='valid')
-
-        if args.seaweed:
-            with tf.variable_scope('Seaweed_augmentation'):
-                # 218, 178
-                train_x = tf.where(tf.greater(tf.random_uniform([args.batch_size], 0., 1.), .65),
-                                   tf.where(tf.greater(tf.random_uniform((), 0., 1.), .5),
-                                            tf.where(tf.greater(tf.random_uniform((), 0., 1.), .5),
-                                                     tf.concat([train_x[:, :109], tf.zeros_like(train_x[:, :109])], 1),
-                                                     tf.concat([tf.zeros_like(train_x[:, :109]), train_x[:, 109:]], 1)),
-                                            tf.where(tf.greater(tf.random_uniform((), 0., 1.), .5),
-                                                     tf.concat([train_x[:, :, :89], tf.zeros_like(train_x[:, :, :89])], 2),
-                                                     tf.concat([tf.zeros_like(train_x[:, :, :89]), train_x[:, :, 89:]], 2))),
-                                   train_x)
-                debug_img_factor = 5
-                debug_train_x = tf.concat([train_x[x::debug_img_factor] for x in range(debug_img_factor)], 1)
-                debug_train_x = tf.concat([debug_train_x[x::debug_img_factor] for x in range(debug_img_factor)], 2)
-                tf.summary.image('seaweed_img', debug_train_x, max_outputs=10)
 
     network = model.TeacherNetwork()
     logits, net_dict = network.build_network(train_x, class_num=len(data_reader.dict_class.keys()), reuse=False, is_train=True)
