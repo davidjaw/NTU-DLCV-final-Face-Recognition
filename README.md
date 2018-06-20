@@ -1,10 +1,12 @@
 # DLCV-final
 Face Recognition
 
+* Kaggle link: [Kaggle](https://www.kaggle.com/c/2018-spring-dlcv-final-project-2/leaderboard)
+
 ## Team Members
-R06942120 [Github](https://github.com/ljn3333)
-R06921076 [Github](https://github.com/YiJingLin)
-D06921016 [Github](https://github.com/davidjaw)
+* R06942120 [Github](https://github.com/ljn3333)
+* R06921076 [Github](https://github.com/YiJingLin)
+* D06921016 [Github](https://github.com/davidjaw)
 
 ## Ongoing
 - training Inception-ResNet-v1 wihout **center loss** (YiJing)
@@ -23,21 +25,21 @@ D06921016 [Github](https://github.com/davidjaw)
 - [ ] Don't know yet.
 
 ## Model comparison
-|  | Model size | # of parameters | Accuracy on Validation |
-| -------- | -------- | -------- | -------- |
-| Inception-ResNet | 124MB | 26,781,288 | 75.75% |
-| SqueezeNeXt | 15MB     | 3,729,786     | 71.28% |
-| SqueezeNeXt(T-S) | 15MB     | 3,729,786     | ~ |
+|  | Model size | # of parameters | Accuracy on Validation | Inference time | Trained weights |
+| -------- | -------- | -------- | -------- | -------- | -------- |
+| Inception-ResNet | 124MB | 26,781,288 | 75.75% | ~ | [link](https://drive.google.com/file/d/1ezy3zzPXoFId2vq6tsbvurtqCQkQEOqt/view?usp=sharing) |
+| SqueezeNeXt | 15MB     | 3,729,786     | 71.28% | ~ | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
+| SqueezeNeXt(T-S) | 15MB     | 3,729,786     | ~ | ~ | ~ |
 
 * T-S refers to Teacher-Student training strategy
 
 ## Materials
-### Baseline model
+### Baseline model - Inception ResNet
 * [Github repo](https://github.com/davidsandberg/facenet)
 * Related paper 1: ["FaceNet: A Unified Embedding for Face Recognition and Clustering"](https://arxiv.org/abs/1503.03832)
 * Related paper 2: ["Deep Face Recognition"](http://www.robots.ox.ac.uk/~vgg/publications/2015/Parkhi15/parkhi15.pdf)
 
-### Squeezenext
+### Compressed model - SqueezeNeXt
 * [Github repo](https://github.com/amirgholami/SqueezeNext)
 * [paper](https://arxiv.org/abs/1803.10615)
 
