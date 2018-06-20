@@ -76,7 +76,9 @@ def main(args):
         optim = tf.train.AdagradOptimizer(1e-4)
     else:
         optim = tf.train.GradientDescentOptimizer(1e-4)
-    train_op = optim.minimize(train_loss + prelogits_norm + center_loss)
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        train_op = optim.minimize(train_loss + prelogits_norm + center_loss)
 
     train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
