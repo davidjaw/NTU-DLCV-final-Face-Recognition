@@ -15,7 +15,7 @@ def get_args():
     parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
     parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
-    parser.add_argument('--finetune_level', type=int, default=2,
+    parser.add_argument('--finetune_level', type=int, default=0,
                         help='0: without data augmentation(DA), 1: with DA, 2: with seaweed augmentation')
 
     return parser.parse_args()

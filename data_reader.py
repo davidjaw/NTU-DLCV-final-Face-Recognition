@@ -146,7 +146,7 @@ class DataReader(object):
         tf_imgs = (tf_imgs - .5) * 2
         tf_imgs = tf.image.resize_bilinear(tf_imgs, [218, 178])
 
-        if augmentation_level >= 2:
+        if mode == 'train' and augmentation_level >= 2:
             def np_seaweed_augment(imgs):
                 # seaweed augmentation: randomly block image section by seaweed
                 b, h, w, c = imgs.shape
@@ -173,10 +173,11 @@ class DataReader(object):
                                             seaweed_img2),
                                    tf_imgs)
 
-        debug_img_factor = 5
-        debug_tf_imgs = tf.concat([tf_imgs[x::debug_img_factor] for x in range(debug_img_factor)], 1)
-        debug_tf_imgs = tf.concat([debug_tf_imgs[x::debug_img_factor] for x in range(debug_img_factor)], 2)
-        tf.summary.image('in_imgs', debug_tf_imgs, max_outputs=10)
+        if mode == 'train':
+            debug_img_factor = 5
+            debug_tf_imgs = tf.concat([tf_imgs[x::debug_img_factor] for x in range(debug_img_factor)], 1)
+            debug_tf_imgs = tf.concat([debug_tf_imgs[x::debug_img_factor] for x in range(debug_img_factor)], 2)
+            tf.summary.image('in_imgs', debug_tf_imgs, max_outputs=10)
 
         return tf_imgs, tf_labels
 
