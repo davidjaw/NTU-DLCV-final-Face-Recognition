@@ -97,7 +97,7 @@ class DataReader(object):
 
         return train_img_path, train_label, valid_img_path, valid_label, dict_id_to_class, dict_class_to_id
 
-    def get_instance(self, batch_size, mode, seaweed=False):
+    def get_instance(self, batch_size, mode, augmentation_level=0):
         img_path = self.train_img_path if mode == 'train' else self.valid_img_path
         label = self.train_label if mode == 'train' else self.valid_label
 
@@ -111,7 +111,7 @@ class DataReader(object):
         tf_img = tf_img[h*2:h*4, w:w*4, :]
         tf_img_shape = tf_img.get_shape().as_list()
 
-        if mode == 'train':
+        if mode == 'train' and augmentation_level >= 1:
             # data augmentation
             tf_img = tf.image.random_flip_left_right(tf_img)
             tf_img = tf.py_func(random_rotate_image, [tf_img], tf.uint8)
@@ -121,7 +121,7 @@ class DataReader(object):
 
         tf_imgs, tf_labels = tf.train.batch([tf_img, tf_label], batch_size)
 
-        if mode == 'train':
+        if mode == 'train' and augmentation_level >= 1:
             # data augmentation
             # random scale
             tf_imgs_scaled = tf.image.resize_bilinear(tf_imgs, [int(x * 1.2) for x in tf_img_shape[:-1]])
@@ -146,8 +146,9 @@ class DataReader(object):
         tf_imgs = (tf_imgs - .5) * 2
         tf_imgs = tf.image.resize_bilinear(tf_imgs, [218, 178])
 
-        if seaweed:
+        if augmentation_level >= 2:
             def np_seaweed_augment(imgs):
+                # seaweed augmentation: randomly block image section by seaweed
                 b, h, w, c = imgs.shape
                 np_mask = np.ones([b, h, w, c], np.float32)
                 vh, vw = [int(h / 5), int(w / 5)]
@@ -164,7 +165,6 @@ class DataReader(object):
                 return imgs * np_mask
 
             with tf.variable_scope('Seaweed_augmentation'):
-                # 218, 178
                 seaweed_img = tf.py_func(np_seaweed_augment, [tf_imgs], tf.float32)
                 seaweed_img2 = tf.py_func(np_seaweed_augment, [seaweed_img], tf.float32)
                 tf_imgs = tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .5),

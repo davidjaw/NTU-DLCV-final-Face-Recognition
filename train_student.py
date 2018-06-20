@@ -6,7 +6,6 @@ import argparse
 import numpy as np
 import utils
 
-
 def get_args():
     parser = argparse.ArgumentParser(description='Face recognition')
     parser.add_argument('--data_path', type=str, default='./dlcv_final_2_dataset/', help='path to dataset folder')
@@ -16,6 +15,8 @@ def get_args():
     parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
     parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
+    parser.add_argument('--finetune_level', type=int, default=2,
+                        help='0: without data augmentation(DA), 1: with DA, 2: with seaweed augmentation')
 
     return parser.parse_args()
 
@@ -28,12 +29,13 @@ def main(args):
     LOG_ALL_TRAIN_PARAMS = False
     PRELOGIT_NORM_FACTOR = 0
     CENTER_LOSS_FACTOR = 1e-5
+    LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-4
 
     with tf.variable_scope('Data_Generator'):
         data_reader = DataReader(
             data_path=args.data_path
         )
-        train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train')
+        train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train', augmentation_level=args.finetune_level)
         valid_x, valid_y = data_reader.get_instance(batch_size=args.batch_size, mode='valid')
 
     network = model.StudentNetwork(len(data_reader.dict_class.keys()))
@@ -45,14 +47,17 @@ def main(args):
         eps = 1e-4
         prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * PRELOGIT_NORM_FACTOR
 
+        # Center loss
         center_loss, _ = utils.center_loss(prelogits, train_y, .95, len(data_reader.dict_class.keys()))
         center_loss *= CENTER_LOSS_FACTOR
 
+        # Cross Entropy loss
         train_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y)
         valid_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=v_logits, labels=valid_y)
         train_loss = tf.reduce_mean(train_loss)
         valid_loss = tf.reduce_mean(valid_loss)
 
+        # Accuracy for tensorboard
         train_output = tf.argmax(tf.nn.softmax(logits, -1), -1, output_type=tf.int32)
         train_accu = tf.where(tf.equal(train_output, train_y), tf.ones_like(train_output), tf.zeros_like(train_output))
         train_accu = tf.reduce_sum(train_accu) / args.batch_size * 100
@@ -71,11 +76,12 @@ def main(args):
         tf.summary.scalar('valid_accu', valid_accu)
 
     if args.optim_type == 'adam':
-        optim = tf.train.AdamOptimizer(1e-4)
+        optim = tf.train.AdamOptimizer(LEARNING_RATE)
     elif args.optim_type == 'adagrad':
-        optim = tf.train.AdagradOptimizer(1e-4)
+        optim = tf.train.AdagradOptimizer(LEARNING_RATE)
     else:
-        optim = tf.train.GradientDescentOptimizer(1e-4)
+        optim = tf.train.GradientDescentOptimizer(LEARNING_RATE)
+    # get batch normalization parameters
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         train_op = optim.minimize(train_loss + prelogits_norm + center_loss)
@@ -103,7 +109,6 @@ def main(args):
     tf.Graph().finalize()
     start_time = time.time()
     step = 0
-    v_list, v_stop_cnt = [[], 0]
     while step * args.batch_size / len(data_reader.train_label) < args.target_epoch:
         _ = sess.run(train_op)
 
@@ -115,26 +120,6 @@ def main(args):
             print('[Log file saved] {:.2f} secs for one step'.format(time_cost))
             print('Current loss: {:.2f}, train accu: {:.2f}%, valid accu: {:.2f}%'.format(loss, accu, v_accu))
             start_time = time.time()
-
-            # # early stop: mean over previous 5 validation loss, stop training if 5 times greater
-            # v_loss_mean = np.mean(v_list) if step > 0 else 0
-            # if v_loss > v_loss_mean and step > 0:
-            #     for i in range(10):
-            #         v_loss_chk = sess.run(valid_loss)
-            #         if v_loss_chk < v_loss_mean:
-            #             break
-            #         else:
-            #             v_stop_cnt += 1
-            # else:
-            #     v_stop_cnt = 0
-            #
-            # v_list.append(v_loss)
-            # v_list = v_list[-5:]
-            #
-            # if v_stop_cnt >= 5:
-            #     saver.save(sess, args.weight_path + 'teacher.ckpt', step)
-            #     print('[Weights saved] weights saved at {}'.format(args.weight_path + 'teacher'))
-            #     break
 
         if step % SAVE_STEP == 0:
             saver.save(sess, args.weight_path + 'student.ckpt', step)

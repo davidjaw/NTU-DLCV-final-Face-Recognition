@@ -24,24 +24,23 @@ Face Recognition
 ### Presentation
 - [ ] Don't know yet.
 
-## Model comparison
-|  | Model size | # of parameters | Accuracy on Validation | Inference time | Trained weights |
-| -------- | -------- | -------- | -------- | -------- | -------- |
-| Inception-ResNet | 124MB | 26,781,288 | 75.75% | ~ | [link](https://drive.google.com/file/d/1ezy3zzPXoFId2vq6tsbvurtqCQkQEOqt/view?usp=sharing) |
-| SqueezeNeXt | 15MB     | 3,729,786     | 71.28% | ~ | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
-| SqueezeNeXt(T-S) | 15MB     | 3,729,786     | ~ | ~ | ~ |
+## Model descrioption
 
-* T-S refers to Teacher-Student training strategy
-
-## Materials
 ### Baseline model - Inception ResNet
-* [Github repo](https://github.com/davidsandberg/facenet)
-* Related paper 1: ["FaceNet: A Unified Embedding for Face Recognition and Clustering"](https://arxiv.org/abs/1503.03832)
-* Related paper 2: ["Deep Face Recognition"](http://www.robots.ox.ac.uk/~vgg/publications/2015/Parkhi15/parkhi15.pdf)
+* Network borrowed from [Github repo](https://github.com/davidsandberg/facenet)
+  * Related paper 1: ["FaceNet: A Unified Embedding for Face Recognition and Clustering"](https://arxiv.org/abs/1503.03832)
+  * Related paper 2: ["Deep Face Recognition"](http://www.robots.ox.ac.uk/~vgg/publications/2015/Parkhi15/parkhi15.pdf)
+* Center loss is utilized for preventing overfitting
+  * Paper: ["A Discriminative Feature Learning Approach for Deep Face Recognition"](http://ydwen.github.io/papers/WenECCV16.pdf)
+* Training policy
+  1. Train without data augmentation: `python train_teacher.py --finetune_level 0`
+  2. Fine-tune with basic data augmentations: `python train_teacher.py --finetune_level 1`
+      * Including rotation, horizontal flip, scale, crop, hue, contrast, brightness, gray-scale
+  3. Fine-tune with seaweed augmentation: `python train_teacher.py --finetune_level 2`
 
 ### Compressed model - SqueezeNeXt
-* [Github repo](https://github.com/amirgholami/SqueezeNext)
-* [paper](https://arxiv.org/abs/1803.10615)
+* ["SqueezeNext: Hardware-Aware Neural Network Design"](https://arxiv.org/abs/1803.10615)
+  * Implemented **SqNxt-23v5** following [this repo](https://github.com/amirgholami/SqueezeNext)
 
 ### Teacher Student training
 * [Github](https://github.com/EricHe98/Teacher-Student-Training)
@@ -51,4 +50,13 @@ Face Recognition
 WITH CLASS-DISTANCE LOSS](https://openreview.net/pdf?id=ByXrfaGFe)
   * No code
 
+## Model comparison
+|  | Model size | # of parameters | Accuracy on Validation | Inference time | Trained weights |
+| -------- | -------- | -------- | -------- | -------- | -------- |
+| In.-Res. | 124MB | 26,781,288 | 75.75% | ~ | [link](https://drive.google.com/file/d/1ezy3zzPXoFId2vq6tsbvurtqCQkQEOqt/view?usp=sharing) |
+| In.-Res. w. seaweed | 124MB | 26,781,288 | 78.85% | ~ | [link](https://drive.google.com/file/d/1LM9ikf1-Cot3nGdizhMf2vYGRFIBiZqx/view?usp=sharing) |
+| SqNxt-23v5 | 15MB     | 3,729,786     | 71.28% | ~ | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
+| SqNxt-23v5(T-S) | 15MB     | 3,729,786     | ~ | ~ | ~ |
+
+* T-S refers to Teacher-Student training strategy
 
