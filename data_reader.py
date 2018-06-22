@@ -5,7 +5,7 @@ import os
 
 
 def random_rotate_image(image):
-    angle = 30.
+    angle = 40.
     angle = np.random.uniform(low=-1 * angle, high=angle)
     return misc.imrotate(image, angle, 'bicubic')
 
@@ -124,10 +124,17 @@ class DataReader(object):
         if mode == 'train' and augmentation_level >= 1:
             # data augmentation
             # random scale
-            tf_imgs_scaled = tf.image.resize_bilinear(tf_imgs, [int(x * 1.2) for x in tf_img_shape[:-1]])
-            tf_imgs_scaled = tf.image.resize_image_with_crop_or_pad(tf_imgs_scaled, tf_img_shape[0], tf_img_shape[1])
-            random_scale = tf.random_uniform([batch_size], 0., 1.)
-            tf_imgs = tf.where(tf.greater(random_scale, .7), tf_imgs, tf_imgs_scaled)
+            img_shape = tf.shape(tf_imgs, out_type=tf.float32)
+            scale_up_factor = [tf.random_uniform((), 1., 1.25) * x for x in [img_shape[1], img_shape[2]]]
+            scale_down_factor = [tf.random_uniform((), .7, 1.) * x for x in [img_shape[1], img_shape[2]]]
+            tf_imgs_scaled_up = tf.image.resize_bilinear(tf_imgs, [tf.cast(x, tf.int32) for x in scale_up_factor])
+            tf_imgs_scaled_down = tf.image.resize_bilinear(tf_imgs, [tf.cast(x, tf.int32) for x in scale_down_factor])
+            tf_scaled_img = [tf.image.resize_image_with_crop_or_pad(x, tf_img_shape[0], tf_img_shape[1]) for x in
+                             [tf_imgs_scaled_up, tf_imgs_scaled_down]]
+            tf_scaled_img = tf.where(tf.greater(tf.random_uniform((), 0., 1., name='random_up_down_sample'), .5),
+                                     tf_scaled_img[0], tf_scaled_img[1])
+            tf_imgs = tf.where(tf.greater(tf.random_uniform((), 0., 1., name='random_scale'), .4),
+                               tf_imgs, tf_scaled_img)
 
             # gray-scale augmentation
             tf_imgs_gray = tf.reduce_mean(tf_imgs, -1, keepdims=True)
@@ -144,7 +151,7 @@ class DataReader(object):
 
         # inception pre-processing
         tf_imgs = (tf_imgs - .5) * 2
-        tf_imgs = tf.image.resize_bilinear(tf_imgs, [218, 178])
+        tf_imgs = tf.image.resize_bilinear(tf_imgs, [224, 224])
 
         if mode == 'train' and augmentation_level >= 2:
             def np_seaweed_augment(imgs):
@@ -167,7 +174,7 @@ class DataReader(object):
             with tf.variable_scope('Seaweed_augmentation'):
                 seaweed_img = tf.py_func(np_seaweed_augment, [tf_imgs], tf.float32)
                 seaweed_img2 = tf.py_func(np_seaweed_augment, [seaweed_img], tf.float32)
-                tf_imgs = tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .5),
+                tf_imgs = tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .3),
                                    tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .25),
                                             seaweed_img,
                                             seaweed_img2),
@@ -206,7 +213,7 @@ class DataReader(object):
 
 # import cv2
 # data_reader = DataReader('./dlcv_final_2_dataset/')
-# x, y = data_reader.get_instance(100, 'train', True)
+# x, y = data_reader.get_instance(100, 'train', 2)
 # x = x / 2 + .5
 # debug_img_factor = 5
 # debug_x = tf.concat([x[xx::debug_img_factor] for xx in range(debug_img_factor)], 1)
