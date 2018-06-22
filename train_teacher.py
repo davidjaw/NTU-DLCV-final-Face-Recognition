@@ -76,15 +76,18 @@ def main(args):
         tf.summary.scalar('valid_loss', valid_loss)
         tf.summary.scalar('valid_accu', valid_accu)
 
+    global_step = tf.Variable(0, trainable=False)
+    learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step, 10000, 0.9, staircase=True)
     if args.optim_type == 'adam':
-        optim = tf.train.AdamOptimizer(LEARNING_RATE)
+        optim = tf.train.AdamOptimizer(learning_rate)
     elif args.optim_type == 'adagrad':
-        optim = tf.train.AdagradOptimizer(LEARNING_RATE)
+        optim = tf.train.AdagradOptimizer(learning_rate)
     else:
-        optim = tf.train.GradientDescentOptimizer(LEARNING_RATE)
-    train_op = optim.minimize(train_loss + prelogits_norm + center_loss)
+        optim = tf.train.GradientDescentOptimizer(learning_rate)
+    train_op = optim.minimize(train_loss + prelogits_norm + center_loss, global_step)
 
-    train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
+    train_params = list(filter(lambda x: 'Adam' not in x.op.name and 'Inception' in x.op.name,
+                               tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
 
     if LOG_ALL_TRAIN_PARAMS:
