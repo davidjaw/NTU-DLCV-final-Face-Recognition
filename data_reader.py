@@ -131,9 +131,9 @@ class DataReader(object):
             tf_imgs_scaled_down = tf.image.resize_bilinear(tf_imgs, [tf.cast(x, tf.int32) for x in scale_down_factor])
             tf_scaled_img = [tf.image.resize_image_with_crop_or_pad(x, tf_img_shape[0], tf_img_shape[1]) for x in
                              [tf_imgs_scaled_up, tf_imgs_scaled_down]]
-            tf_scaled_img = tf.where(tf.greater(tf.random_uniform((), 0., 1., name='random_up_down_sample'), .5),
+            tf_scaled_img = tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1.), .5),
                                      tf_scaled_img[0], tf_scaled_img[1])
-            tf_imgs = tf.where(tf.greater(tf.random_uniform((), 0., 1., name='random_scale'), .4),
+            tf_imgs = tf.where(tf.greater(tf.random_uniform([batch_size], 0., 1., name='random_scale'), .4),
                                tf_imgs, tf_scaled_img)
 
             # gray-scale augmentation
