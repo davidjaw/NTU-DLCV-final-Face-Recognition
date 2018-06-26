@@ -14,15 +14,9 @@ Face Recognition
 ## Todos
 
 ### Implementation
-- [x] Implement baseline network with tensorflow
-- [x] Train baseline network with good performance
-- [x] Implement Squeezenext with tensorflow
-- [x] Train Squeezenext network (don't care about performance here)
-- [ ] Implement Teacher-Student training strategy
+- [x] Implement Teacher-Student training strategy
 - [ ] Train Squeezenext network under Teacher-Student policy **with better performance** than the typical one
-
-### Presentation
-- [ ] Don't know yet.
+  * testing by David
 
 ## Model descrioption
 
@@ -51,12 +45,33 @@ WITH CLASS-DISTANCE LOSS](https://openreview.net/pdf?id=ByXrfaGFe)
   * No code
 
 ## Model comparison
+
 |  | Model size | # of parameters | Accuracy on Validation | Inference time | Trained weights |
-| -------- | -------- | -------- | -------- | -------- | -------- |
-| In.-Res. | 124MB | 26,781,288 | 75.75% | ~ | [link](https://drive.google.com/file/d/1ezy3zzPXoFId2vq6tsbvurtqCQkQEOqt/view?usp=sharing) |
-| In.-Res. w. seaweed | 124MB | 26,781,288 | 78.85% | ~ | [link](https://drive.google.com/file/d/1LM9ikf1-Cot3nGdizhMf2vYGRFIBiZqx/view?usp=sharing) |
+| :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
+| In.-Res. | 124MB | 26,781,288 | 81.81% | ~ | [link](https://drive.google.com/file/d/1Rah5wttPwvI-LN_lE_NebjUJRZZfdhAx/view?usp=sharing) |
 | SqNxt-23v5 | 15MB     | 3,729,786     | 71.28% | ~ | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
 | SqNxt-23v5(T-S) | 15MB     | 3,729,786     | ~ | ~ | ~ |
 
 * T-S refers to Teacher-Student training strategy
 
+## Ablation study
+|  | Basic A. | Gray-scale | Seaweed | Center loss | pre-logit norm | A-softmax | Performance |
+| :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
+| In.-Res. | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | ~30% |
+| In.-Res. | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 67.4% |
+| In.-Res. | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 72% |
+| In.-Res. | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | 75.75% |
+| In.-Res. | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | 78.11% |
+| In.-Res. | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | 81.81% |
+
+* Basic A. refers to basic augmentations
+
+## Download trained weights for fine-tune
+### Teacher network
+| F. level | Accu | link |
+| :--------: | :--------: | :--------: |
+| 0 | ~24% | [Link](https://drive.google.com/file/d/1U-f09BeV1YZeqPTt8Hs_DgE70Y9h_rM1/view?usp=sharing) |
+| 1 | ~73% | [Link](https://drive.google.com/file/d/17ct_unH0p8LsExAi2hX4PVG3Fsczfa21/view?usp=sharing) |
+| 2 | ~81% | [Link](https://drive.google.com/file/d/1N6FiuA-3xj9r0uy-zXbwFaOHR8qiqza-/view?usp=sharing) |
+
+* F. level: fine_tune level
