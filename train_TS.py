@@ -60,7 +60,7 @@ def main(args):
 
         # soft label loss
         with tf.variable_scope('soft_CE'):
-            soft_CE = lambda x, y: tf.reduce_mean(-1 * y * tf.log(x + 1e-6))
+            soft_CE = lambda x, y: tf.reduce_mean(tf.reduce_sum(-1 * y * tf.log(x + 1e-6), -1))
             s_embed_CE = soft_CE(tf.nn.softmax(s_embed_pred), tf.nn.softmax(teacher_logits))
             s_CE = soft_CE(tf.nn.softmax(logits), tf.nn.softmax(teacher_logits))
 
