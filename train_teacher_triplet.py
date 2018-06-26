@@ -25,12 +25,12 @@ def get_args():
 def main(args):
     print(args)
 
-    LOG_STEP = 50
+    LOG_STEP = 250
     SAVE_STEP = 500
     LOG_ALL_TRAIN_PARAMS = False
-    PRELOGIT_NORM_FACTOR = 0 if args.finetune_level < 2 else 1e-5
-    CENTER_LOSS_FACTOR = 1e-5
-    LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-4
+    PRELOGIT_NORM_FACTOR = 0 if args.finetune_level < 2 else 1e-4
+    CENTER_LOSS_FACTOR = 1e-4
+    LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-3
 
     with tf.variable_scope('Data_Generator'):
         data_reader = DataReader(
@@ -61,8 +61,16 @@ def main(args):
         # Cross Entropy loss
         train_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y)
         valid_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=v_logits, labels=valid_y)
-        train_loss = tf.reduce_mean(train_loss)
-        valid_loss = tf.reduce_mean(valid_loss)
+        if args.finetune_level == 2:
+            train_loss = tf.reduce_mean(tf.where(tf.less(train_loss, tf.reduce_max(train_loss) * .7),
+                                                 train_loss * .1,
+                                                 train_loss))
+            valid_loss = tf.reduce_mean(tf.where(tf.less(valid_loss, tf.reduce_max(valid_loss) * .7),
+                                                 valid_loss * .1,
+                                                 valid_loss))
+        else:
+            train_loss = tf.reduce_mean(train_loss)
+            valid_loss = tf.reduce_mean(valid_loss)
 
         # Accuracy for tensorboard
         train_output = tf.argmax(tf.nn.softmax(logits, -1), -1, output_type=tf.int32)
