@@ -18,7 +18,7 @@ class LossFunctions(object):
             pln_loss = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * self.pnf
 
             # Center loss
-            center_loss, _ = get_center_loss(prelogits, y, .95, class_num)
+            center_loss, _ = get_center_loss(prelogits, y, .95, class_num) if scope_name == 'Training' else [0, 0]
             center_loss *= self.cf
 
             # triplet loss
@@ -53,7 +53,7 @@ class LossFunctions(object):
 
                 if use_triplet_loss:
                     tf.summary.scalar('triplet_loss', triplet_loss)
-                if use_center_loss:
+                if use_center_loss and scope_name == 'Training':
                     tf.summary.scalar('center_loss', center_loss)
                 if use_prelogits_norm:
                     tf.summary.scalar('pln_loss', pln_loss)
