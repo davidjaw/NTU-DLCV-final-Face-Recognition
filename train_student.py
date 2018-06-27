@@ -1,10 +1,11 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 import model
 from data_reader import DataReader
 import time
 import argparse
-import numpy as np
 import utils
+
 
 def get_args():
     parser = argparse.ArgumentParser(description='Face recognition')
@@ -27,8 +28,6 @@ def main(args):
     LOG_STEP = 50
     SAVE_STEP = 500
     LOG_ALL_TRAIN_PARAMS = False
-    PRELOGIT_NORM_FACTOR = 0
-    CENTER_LOSS_FACTOR = 1e-5
     LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-4
 
     with tf.variable_scope('Data_Generator'):
@@ -37,43 +36,36 @@ def main(args):
         )
         train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train', augmentation_level=args.finetune_level)
         valid_x, valid_y = data_reader.get_instance(batch_size=args.batch_size, mode='valid')
+        class_num = len(data_reader.dict_class.keys())
 
     network = model.StudentNetwork(len(data_reader.dict_class.keys()))
     logits, prelogits = network.build_network(train_x, reuse=False, is_train=True)
     v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1)
 
-    with tf.variable_scope('compute_loss'):
-        # Norm for the prelogits
-        eps = 1e-4
-        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * PRELOGIT_NORM_FACTOR
+    use_center, use_pln, use_triplet, use_him = [False for _ in range(4)]
+    pln_factor = center_factor = 0
+    if args.finetune_level == 2:
+        use_center, use_pln, use_triplet, use_him = [True for _ in range(4)]
+        with tf.variable_scope('Output'):
+            embed = slim.fully_connected(prelogits, 128, tf.identity, scope='Embedding')
+            v_embed = slim.fully_connected(v_prelogits, 128, tf.identity, reuse=True, scope='Embedding')
+        pln_factor = center_factor = 1e-4
+    else:
+        embed = v_embed = None
+        if args.finetune_level == 1:
+            use_center = use_pln = True
+            pln_factor = center_factor = 1e-5
 
-        # Center loss
-        center_loss, _ = utils.center_loss(prelogits, train_y, .95, len(data_reader.dict_class.keys()))
-        center_loss *= CENTER_LOSS_FACTOR
-
-        # Cross Entropy loss
-        train_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y)
-        valid_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=v_logits, labels=valid_y)
-        train_loss = tf.reduce_mean(train_loss)
-        valid_loss = tf.reduce_mean(valid_loss)
-
-        # Accuracy for tensorboard
-        train_output = tf.argmax(tf.nn.softmax(logits, -1), -1, output_type=tf.int32)
-        train_accu = tf.where(tf.equal(train_output, train_y), tf.ones_like(train_output), tf.zeros_like(train_output))
-        train_accu = tf.reduce_sum(train_accu) / args.batch_size * 100
-
-        valid_output = tf.argmax(tf.nn.softmax(v_logits, -1), -1, output_type=tf.int32)
-        valid_accu = tf.where(tf.equal(valid_output, valid_y), tf.ones_like(valid_output), tf.zeros_like(valid_output))
-        valid_accu = tf.reduce_sum(valid_accu) / args.batch_size * 100
-
-    with tf.variable_scope('Summary'):
-        tf.summary.histogram('logit_raw', logits)
-        tf.summary.histogram('logit_softmax', train_output)
-
-        tf.summary.scalar('train_loss', train_loss)
-        tf.summary.scalar('train_accu', train_accu)
-        tf.summary.scalar('valid_loss', valid_loss)
-        tf.summary.scalar('valid_accu', valid_accu)
+    loss_func = utils.LossFunctions(
+        prelogit_norm_factor=pln_factor,
+        center_loss_factor=center_factor,
+    )
+    loss, accu = loss_func.calculate_loss(logits, train_y, prelogits, class_num, use_center_loss=use_center,
+                                          embed=embed, use_triplet_loss=use_triplet, use_prelogits_norm=use_pln,
+                                          use_hard_instance_mining=use_him, scope_name='Training')
+    _, v_accu = loss_func.calculate_loss(v_logits, valid_y, v_prelogits, class_num, use_center_loss=use_center,
+                                         embed=v_embed, use_triplet_loss=use_triplet, use_prelogits_norm=use_pln,
+                                         use_hard_instance_mining=use_him, scope_name='Validation')
 
     if args.optim_type == 'adam':
         optim = tf.train.AdamOptimizer(LEARNING_RATE)
@@ -84,7 +76,7 @@ def main(args):
     # get batch normalization parameters
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        train_op = optim.minimize(train_loss + prelogits_norm + center_loss)
+        train_op = optim.minimize(loss)
 
     train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
@@ -114,11 +106,11 @@ def main(args):
 
         if step % LOG_STEP == 0:
             time_cost = (time.time() - start_time) / LOG_STEP if step > 0 else 0
-            loss, v_loss, accu, v_accu, s = sess.run([train_loss, valid_loss, train_accu, valid_accu, merged])
+            np_loss, np_accu, np_v_accu, s = sess.run([loss, accu, v_accu, merged])
             train_writer.add_summary(s, step)
             print('======================= Step {} ====================='.format(step))
             print('[Log file saved] {:.2f} secs for one step'.format(time_cost))
-            print('Current loss: {:.2f}, train accu: {:.2f}%, valid accu: {:.2f}%'.format(loss, accu, v_accu))
+            print('Current loss: {:.2f}, train accu: {:.2f}%, valid accu: {:.2f}%'.format(np_loss, np_accu, np_v_accu))
             start_time = time.time()
 
         if step % SAVE_STEP == 0:
