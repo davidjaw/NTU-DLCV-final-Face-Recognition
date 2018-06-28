@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 import model
 from data_reader import DataReader
 import time
@@ -25,10 +26,11 @@ def get_args():
 def main(args):
     print(args)
 
-    LOG_STEP = 50
+    LOG_STEP = 250
     SAVE_STEP = 500
-    LOG_ALL_TRAIN_PARAMS = True
+    LOG_ALL_TRAIN_PARAMS = False
     MODEL_NAME = 'TS.ckpt'
+    LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-3
 
     with tf.variable_scope('Data_Generator'):
         data_reader = DataReader(
@@ -46,10 +48,25 @@ def main(args):
     logits, prelogits = network.build_network(train_x, reuse=False, is_train=True)
     v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1)
 
+    with tf.variable_scope('SqueezeNeXt/Embedding'):
+        t_prelogits = teacher_dict['PreLogitsFlatten']
+        s_embed = slim.fully_connected(prelogits, t_prelogits.get_shape().as_list()[-1], activation_fn=tf.identity)
+        s_embed_pred = slim.fully_connected(s_embed, len(data_reader.dict_class.keys()), activation_fn=tf.identity)
+
     with tf.variable_scope('compute_loss'):
-        train_loss = tf.squared_difference(logits, teacher_logits)
-        train_loss = tf.reduce_mean(train_loss)
-        train_loss += tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y))
+        # Euclidean embedding loss
+        euclidean_loss = tf.squared_difference(s_embed, t_prelogits)
+        euclidean_loss = tf.reduce_mean(euclidean_loss)
+
+        # soft label loss
+        with tf.variable_scope('soft_CE'):
+            soft_CE = lambda x, y: tf.reduce_mean(tf.reduce_sum(-1 * y * tf.log(x + 1e-6), -1))
+            s_embed_CE = soft_CE(tf.nn.softmax(s_embed_pred), tf.nn.softmax(teacher_logits))
+            s_CE = soft_CE(tf.nn.softmax(logits), tf.nn.softmax(teacher_logits))
+
+        # hard label loss
+        hard_CE = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y))
+        train_loss = euclidean_loss + s_embed_CE + s_CE * .5 + hard_CE
 
         train_output = tf.argmax(tf.nn.softmax(logits, -1), -1, output_type=tf.int32)
         train_accu = tf.where(tf.equal(train_output, train_y), tf.ones_like(train_output), tf.zeros_like(train_output))
@@ -63,22 +80,33 @@ def main(args):
         tf.summary.histogram('logit_raw', logits)
         tf.summary.histogram('logit_softmax', train_output)
 
+        tf.summary.scalar('s_embed_CE', s_embed_CE)
+        tf.summary.scalar('s_CE', s_CE)
+        tf.summary.scalar('euclidean_loss', euclidean_loss)
+        tf.summary.scalar('hard_CE', hard_CE)
+
         tf.summary.scalar('train_loss', train_loss)
         tf.summary.scalar('train_accu', train_accu)
         tf.summary.scalar('valid_accu', valid_accu)
 
+    train_params = list(filter(lambda x: 'Adam' not in x.op.name and 'SqueezeNeXt' in x.op.name,
+                               tf.contrib.slim.get_variables_to_restore(exclude=['InceptionResnetV1'])))
+    teacher_params = list(filter(lambda x: 'Adam' not in x.op.name and 'Inception' in x.op.name,
+                                 tf.contrib.slim.get_variables_to_restore(exclude=['SqueezeNeXt'])))
+    inference_param = train_params[:-4]
+
+    global_step = tf.Variable(0, trainable=False)
+    learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step, 10000, 0.9, staircase=True)
     if args.optim_type == 'adam':
-        optim = tf.train.AdamOptimizer(1e-4)
+        optim = tf.train.AdamOptimizer(learning_rate)
     elif args.optim_type == 'adagrad':
-        optim = tf.train.AdagradOptimizer(1e-4)
+        optim = tf.train.AdagradOptimizer(learning_rate)
     else:
-        optim = tf.train.GradientDescentOptimizer(1e-4)
+        optim = tf.train.GradientDescentOptimizer(learning_rate)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        train_op = optim.minimize(train_loss)
+        train_op = optim.minimize(train_loss, global_step=global_step, var_list=train_params)
 
-    train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables_to_restore(exclude=['InceptionResnetV1'])))
-    teacher_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables_to_restore(exclude=['SqueezeNeXt'])))
     saver = tf.train.Saver(var_list=train_params)
 
     if LOG_ALL_TRAIN_PARAMS:

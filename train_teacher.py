@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 import model
 from data_reader import DataReader
 import time
@@ -24,57 +25,56 @@ def get_args():
 def main(args):
     print(args)
 
-    LOG_STEP = 50
+    LOG_STEP = 250
     SAVE_STEP = 500
     LOG_ALL_TRAIN_PARAMS = False
-    PRELOGIT_NORM_FACTOR = 0 if args.finetune_level < 2 else 1e-5
-    CENTER_LOSS_FACTOR = 1e-5
-    LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-4
+    LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-3
 
     with tf.variable_scope('Data_Generator'):
         data_reader = DataReader(
             data_path=args.data_path
         )
-        train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train', augmentation_level=args.finetune_level)
+        train_x, train_y = data_reader.get_instance(batch_size=args.batch_size, mode='train',
+                                                    augmentation_level=args.finetune_level)
         valid_x, valid_y = data_reader.get_instance(batch_size=args.batch_size * 2, mode='valid')
+        class_num = len(data_reader.dict_class.keys())
 
     network = model.TeacherNetwork()
-    logits, net_dict = network.build_network(train_x, class_num=len(data_reader.dict_class.keys()), reuse=False, is_train=True)
-    v_logits, v_net_dict = network.build_network(valid_x, class_num=len(data_reader.dict_class.keys()), reuse=True, is_train=True, dropout=1)
+    logits, net_dict = network.build_network(train_x, class_num=len(data_reader.dict_class.keys()), reuse=False,
+                                             is_train=True)
+    v_logits, v_net_dict = network.build_network(valid_x, class_num=len(data_reader.dict_class.keys()), reuse=True,
+                                                 is_train=True, dropout=1)
+    prelogits = net_dict['PreLogitsFlatten']
+    v_prelogits = v_net_dict['PreLogitsFlatten']
 
-    with tf.variable_scope('compute_loss'):
-        # Norm for the prelogits
-        prelogits = net_dict['PreLogitsFlatten']
-        eps = 1e-4
-        prelogits_norm = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * PRELOGIT_NORM_FACTOR
+    use_center, use_pln, use_triplet, use_him = [False for _ in range(4)]
+    pln_factor, center_factor = [0, 0]
+    if args.finetune_level == 2:
+        use_center, use_pln, use_triplet, use_him = [True for _ in range(4)]
+        with tf.variable_scope('Output'):
+            embed = slim.fully_connected(prelogits, 128, tf.identity, scope='Embedding')
+            v_embed = slim.fully_connected(v_prelogits, 128, tf.identity, reuse=True, scope='Embedding')
+        pln_factor = 1e-4
+        center_factor = 1e-4
+    else:
+        embed = None
+        v_embed = None
+        if args.finetune_level == 1:
+            use_center = True
+            use_pln = True
+            pln_factor = 1e-5
+            center_factor = 1e-5
 
-        # Center loss
-        center_loss, _ = utils.center_loss(prelogits, train_y, .95, len(data_reader.dict_class.keys()))
-        center_loss *= CENTER_LOSS_FACTOR
-
-        # Cross Entropy loss
-        train_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=train_y)
-        valid_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=v_logits, labels=valid_y)
-        train_loss = tf.reduce_mean(train_loss)
-        valid_loss = tf.reduce_mean(valid_loss)
-
-        # Accuracy for tensorboard
-        train_output = tf.argmax(tf.nn.softmax(logits, -1), -1, output_type=tf.int32)
-        train_accu = tf.where(tf.equal(train_output, train_y), tf.ones_like(train_output), tf.zeros_like(train_output))
-        train_accu = tf.reduce_sum(train_accu) / args.batch_size * 100
-
-        valid_output = tf.argmax(tf.nn.softmax(v_logits, -1), -1, output_type=tf.int32)
-        valid_accu = tf.where(tf.equal(valid_output, valid_y), tf.ones_like(valid_output), tf.zeros_like(valid_output))
-        valid_accu = tf.reduce_sum(valid_accu) / args.batch_size * 100 / 2
-
-    with tf.variable_scope('Summary'):
-        tf.summary.histogram('logit_raw', logits)
-        tf.summary.histogram('logit_softmax', train_output)
-
-        tf.summary.scalar('train_loss', train_loss)
-        tf.summary.scalar('train_accu', train_accu)
-        tf.summary.scalar('valid_loss', valid_loss)
-        tf.summary.scalar('valid_accu', valid_accu)
+    loss_func = utils.LossFunctions(
+        prelogit_norm_factor=pln_factor,
+        center_loss_factor=center_factor,
+    )
+    loss, accu = loss_func.calculate_loss(logits, train_y, prelogits, class_num, use_center_loss=use_center,
+                                          embed=embed, use_triplet_loss=use_triplet, use_prelogits_norm=use_pln,
+                                          use_hard_instance_mining=use_him, scope_name='Training')
+    _, v_accu = loss_func.calculate_loss(v_logits, valid_y, v_prelogits, class_num, use_center_loss=use_center,
+                                         embed=v_embed, use_triplet_loss=use_triplet, use_prelogits_norm=use_pln,
+                                         use_hard_instance_mining=use_him, scope_name='Validation')
 
     global_step = tf.Variable(0, trainable=False)
     learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step, 10000, 0.9, staircase=True)
@@ -84,7 +84,7 @@ def main(args):
         optim = tf.train.AdagradOptimizer(learning_rate)
     else:
         optim = tf.train.GradientDescentOptimizer(learning_rate)
-    train_op = optim.minimize(train_loss + prelogits_norm + center_loss, global_step)
+    train_op = optim.minimize(loss)
 
     train_params = list(filter(lambda x: 'Adam' not in x.op.name and 'Inception' in x.op.name,
                                tf.contrib.slim.get_variables()))
@@ -115,11 +115,11 @@ def main(args):
 
         if step % LOG_STEP == 0:
             time_cost = (time.time() - start_time) / LOG_STEP if step > 0 else 0
-            loss, v_loss, accu, v_accu, s = sess.run([train_loss, valid_loss, train_accu, valid_accu, merged])
+            np_loss, np_accu, np_v_accu, s = sess.run([loss, accu, v_accu, merged])
             train_writer.add_summary(s, step)
             print('======================= Step {} ====================='.format(step))
             print('[Log file saved] {:.2f} secs for one step'.format(time_cost))
-            print('Current loss: {:.2f}, train accu: {:.2f}%, valid accu: {:.2f}%'.format(loss, accu, v_accu))
+            print('Current loss: {:.2f}, train accu: {:.2f}%, valid accu: {:.2f}%'.format(np_loss, np_accu, np_v_accu))
             start_time = time.time()
 
         if step % SAVE_STEP == 0:
@@ -134,4 +134,3 @@ def main(args):
 
 if __name__ == '__main__':
     main(get_args())
-

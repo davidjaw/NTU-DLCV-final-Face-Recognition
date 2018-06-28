@@ -1,3 +1,22 @@
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
+
+
+class TeacherNetwork(object):
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def build_network(in_batch, class_num, reuse, is_train, dropout=.8):
+        if not is_train:
+            dropout = 1
+        return inception_resnet_v1(in_batch,
+                                   is_training=is_train,
+                                   dropout_keep_prob=dropout,
+                                   reuse=reuse,
+                                   bottleneck_layer_size=class_num)
+
+
 # Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,25 +31,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
-
-
-class TeacherNetwork(object):
-    def __init__(self):
-        pass
-
-    def build_network(self, in_batch, class_num, reuse, is_train, dropout=.8):
-        if not is_train:
-            dropout = 1
-        return inception_resnet_v1(in_batch,
-                                   is_training=is_train,
-                                   dropout_keep_prob=dropout,
-                                   reuse=reuse,
-                                   bottleneck_layer_size=class_num
-                                   )
-
-
 # Inception-Resnet-A
 def block35(net, scale=1.0, activation_fn=tf.nn.relu, scope=None, reuse=None):
     """Builds the 35x35 resnet block."""

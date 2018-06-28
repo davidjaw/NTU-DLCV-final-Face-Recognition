@@ -1,7 +1,67 @@
 import tensorflow as tf
 
 
-def center_loss(features, label, alfa, nrof_classes):
+class LossFunctions(object):
+    def __init__(self, prelogit_norm_factor=1e-4, center_loss_factor=1e-4, hard_mining_threshold=.7,
+                 hard_mining_factor=.1, triplet_loss_factor=1.):
+        self.pnf = prelogit_norm_factor
+        self.cf = center_loss_factor
+        self.hmt = hard_mining_threshold
+        self.hmf = hard_mining_factor
+        self.tf = triplet_loss_factor
+
+    def calculate_loss(self, x, y, prelogits, class_num, use_center_loss, use_triplet_loss, use_prelogits_norm,
+                       use_hard_instance_mining, scope_name, embed=None):
+        with tf.variable_scope('compute_loss'):
+            # Norm for the prelogits
+            eps = 1e-4
+            pln_loss = tf.reduce_mean(tf.norm(tf.abs(prelogits) + eps, ord=1., axis=1)) * self.pnf
+
+            # Center loss
+            center_loss, _ = get_center_loss(prelogits, y, .95, class_num) if scope_name == 'Training' else [0, 0]
+            center_loss *= self.cf
+
+            # triplet loss
+            triplet_loss = batch_hard_triplet_loss(y, embed, 1.) if use_triplet_loss else 0
+
+            # Cross Entropy loss
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=x, labels=y)
+            if use_hard_instance_mining:
+                loss = tf.reduce_mean(
+                    tf.where(tf.less(loss, tf.reduce_max(loss) * self.hmt),
+                             loss * self.hmt, loss))
+            else:
+                loss = tf.reduce_mean(loss)
+
+            # gather all loss
+            loss += pln_loss + loss if use_prelogits_norm else 0
+            loss += center_loss + loss if use_center_loss else 0
+            loss += triplet_loss + loss if use_triplet_loss else 0
+
+            # Accuracy for tensorboard
+            output = tf.argmax(tf.nn.softmax(x, -1), -1, output_type=tf.int32)
+            accu = tf.where(tf.equal(output, y), tf.ones_like(output), tf.zeros_like(output))
+            accu = tf.reduce_sum(accu) / y.get_shape().as_list()[0] * 100
+
+        with tf.variable_scope('Summary'):
+            with tf.variable_scope(scope_name):
+                tf.summary.histogram('logit_raw', x)
+                tf.summary.histogram('logit_softmax', output)
+
+                tf.summary.scalar('total_loss', loss)
+                tf.summary.scalar('accu', accu)
+
+                if use_triplet_loss:
+                    tf.summary.scalar('triplet_loss', triplet_loss)
+                if use_center_loss and scope_name == 'Training':
+                    tf.summary.scalar('center_loss', center_loss)
+                if use_prelogits_norm:
+                    tf.summary.scalar('pln_loss', pln_loss)
+
+        return loss, accu
+
+
+def get_center_loss(features, label, alfa, nrof_classes):
     """ ref: https://github.com/davidsandberg/facenet/blob/master/src/facenet.py#L64-L77
     Center loss based on the paper "A Discriminative Feature Learning Approach for Deep Face Recognition"
        (http://ydwen.github.io/papers/WenECCV16.pdf)
