@@ -7,8 +7,8 @@ Face Recognition
 ## Todos
 
 ### Implementation
-- [ ] Train Squeezenext network under Teacher-Student policy **with better performance** than the typical one
-  * testing by David
+- [ ] More comprehensive ablation table
+- [ ] Beat the 1st team !
 
 ## Model descrioption
 
@@ -18,6 +18,8 @@ Face Recognition
   * Related paper 2: ["Deep Face Recognition"](http://www.robots.ox.ac.uk/~vgg/publications/2015/Parkhi15/parkhi15.pdf)
 * Center loss is utilized for preventing overfitting
   * Paper: ["A Discriminative Feature Learning Approach for Deep Face Recognition"](http://ydwen.github.io/papers/WenECCV16.pdf)
+* Hard instance weighting to prevent safe-inference
+    * Paper: ["Focal Loss for Dense Object Detection"](https://arxiv.org/abs/1708.02002)
 * Triplet loss is also utilized on additional embedding layer as multi-task training tricks
     * Paper: ["FaceNet: A Unified Embedding for Face Recognition and Clustering"](https://arxiv.org/abs/1503.03832)
     * Code borrowed from Github: [tensorflow-triplet-loss](https://github.com/omoindrot/tensorflow-triplet-loss)
@@ -42,30 +44,32 @@ Face Recognition
 
 |  | Model size | # of params | P. V. | P. T. | fps | weights |
 | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
-| In.-Res. | 124MB | 26,781,288 | 87.62% | ~ | ~ | [link](https://drive.google.com/file/d/1Rah5wttPwvI-LN_lE_NebjUJRZZfdhAx/view?usp=sharing) |
-| SqNxt-23v5 | 13.7MB     | 3,399,352     | 71.28% | ~ | ~ | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
-| SqNxt-23v5(T-S) | 13.7MB     | 3,399,352     | 79.42% | ~ | ~ | [link](https://drive.google.com/file/d/1TjR60eXS_bBZgElHwoxtxQbgd6EC6FzB/view?usp=sharing)* |
+| In.-Res. | 124MB | 26,781,288 | 87.62% | 84.31% | 418.96 | [link](https://drive.google.com/file/d/1Rah5wttPwvI-LN_lE_NebjUJRZZfdhAx/view?usp=sharing) |
+| SqNxt-23v5 | **13.7MB**     | **3,399,352**     | 71.28% | ~ | **635.68** | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
+| SqNxt-23v5(T-S) | **13.7MB**     | **3,399,352**     | 83.94% | 79.55% | **635.68** | [link](https://drive.google.com/file/d/1r63reqSLVl1v7yviSDptEjh3_Bp1FFwi/view?usp=sharing)* |
 
 * T-S refers to Teacher-Student training strategy
 * P. V. refers to Performance on Validation set
 * the T-S weight is for fine-tuning, thus contains embedding layer
+    * weights for Test is [here](https://drive.google.com/file/d/1Yb2ZX-cJizsE8RFYnua-0Kr4nhcrMKWj/view?usp=sharing)
 
 ## Ablation study
-| Basic A. | Seaweed | Center L. | P. N. L. | Triplet L. | P. V. | P.T. |
-| :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
-| :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | ~30% |
-| :heavy_check_mark: |  :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 67.4% |
-| :heavy_check_mark: |  :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 72% |
-| :heavy_check_mark: |  :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | 75.75% |
-| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | 78.11% |
-| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | 81.81% | 82.45% |
-| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | 87.62% | 84.31% |
+| Basic A. | Seaweed | Center L. | P. N. L. | H. I. M. | Triplet L. | P. V. | P. T. |
+| :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
+| :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | ~30% |
+| :heavy_check_mark: |  :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 67.4% |
+| :heavy_check_mark: |  :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 72% |
+| :heavy_check_mark: |  :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 75.75% |
+| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 78.11% |
+| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | 81.81% | 82.45% |
+| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: | 87.62% | 84.31% |
 
 * Basic A. refers to basic augmentations
-* P. V. refers to Performance on Validation set
-* P. V. refers to Performance on Test set (scores on Kaggle)
 * L. refers to loss
 * P. N. L. refers to pre-logit norm loss
+* H. I. M. refers to hard instance mining
+* P. V. refers to Performance on Validation set
+* P. T. refers to Performance on Test set (scores on Kaggle)
 
 ## Download trained weights for fine-tune
 ### Teacher network
