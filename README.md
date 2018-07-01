@@ -4,12 +4,6 @@ Face Recognition
 * Kaggle link: [Kaggle](https://www.kaggle.com/c/2018-spring-dlcv-final-project-2/leaderboard)
 * Team Members: [R06942120](https://github.com/ljn3333), [R06921076](https://github.com/YiJingLin), [D06921016](https://github.com/davidjaw)
 
-## Todos
-
-### Implementation
-- [ ] More comprehensive ablation table
-- [ ] Beat the 1st team !
-
 ## Model descrioption
 
 ### Baseline model - Inception ResNet
@@ -44,7 +38,7 @@ Face Recognition
 
 |  | Model size | # of params | P. V. | P. T. | fps | weights |
 | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
-| In.-Res. | 124MB | 26,781,288 | 87.62% | 84.31% | 418.96 | [link](https://drive.google.com/file/d/1Rah5wttPwvI-LN_lE_NebjUJRZZfdhAx/view?usp=sharing) |
+| In.-Res. | 124MB | 26,781,288 | 88.91% | 85.59% | 418.96 | [link](https://drive.google.com/file/d/1gNrDUImZfXT8pYHjAYaADn9LsZ1jkNfl/view?usp=sharing) |
 | SqNxt-23v5 | **13.7MB**     | **3,399,352**     | 71.28% | ~ | **635.68** | [link](https://drive.google.com/file/d/1RVldAcPByJBN5eS551xxEAaA49Rlzv39/view?usp=sharing) |
 | SqNxt-23v5(T-S) | **13.7MB**     | **3,399,352**     | 83.94% | 79.55% | **635.68** | [link](https://drive.google.com/file/d/1r63reqSLVl1v7yviSDptEjh3_Bp1FFwi/view?usp=sharing)* |
 
@@ -60,9 +54,9 @@ Face Recognition
 | :heavy_check_mark: |  :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 67.4% |
 | :heavy_check_mark: |  :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 72% |
 | :heavy_check_mark: |  :heavy_multiplication_x: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 75.75% |
-| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 78.11% |
+| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | :heavy_multiplication_x: | 78.11% | 79.11% |
 | :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_multiplication_x: | :heavy_multiplication_x: | 81.81% | 82.45% |
-| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: | 87.62% | 84.31% |
+| :heavy_check_mark: |  :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: | 88.91% | 85.59% |
 
 * Basic A. refers to basic augmentations
 * L. refers to loss
@@ -78,6 +72,6 @@ Face Recognition
 | 0 | ~24% | [Link](https://drive.google.com/file/d/1U-f09BeV1YZeqPTt8Hs_DgE70Y9h_rM1/view?usp=sharing) |
 | 1 | ~73% | [Link](https://drive.google.com/file/d/17ct_unH0p8LsExAi2hX4PVG3Fsczfa21/view?usp=sharing) |
 | 2 | ~81% | [Link](https://drive.google.com/file/d/1N6FiuA-3xj9r0uy-zXbwFaOHR8qiqza-/view?usp=sharing) |
-| 2 | 87.62% | [Link](https://drive.google.com/file/d/1pWD78yJBt3P7FeMvLwczackWkDUvsIiq/view?usp=sharing) |
+| 2 | 88.91% | [Link](https://drive.google.com/file/d/1gNrDUImZfXT8pYHjAYaADn9LsZ1jkNfl/view?usp=sharing) |
 
 * F. level: fine_tune level
