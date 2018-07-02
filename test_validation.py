@@ -13,6 +13,7 @@ def get_args():
     parser.add_argument('--model_name', type=str, default='{}.ckpt', help='filename of trained model')
     parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
     parser.add_argument('--is_teacher', action='store_true', help='Either use the teacher network or student network')
+    parser.add_argument('--light', action='store_true', help='Either to use light model or not')
     return parser.parse_args()
 
 
@@ -35,7 +36,7 @@ def main(args):
                                                      is_train=False, dropout=1)
     else:
         network = model.StudentNetwork(len(data_reader.dict_class.keys()))
-        v_logits, v_pre_logit = network.build_network(valid_x, False, False)
+        v_logits, v_pre_logit = network.build_network(valid_x, False, False, light=args.light)
     v_pred = tf.nn.softmax(v_logits, -1)
     v_pred = tf.argmax(v_pred, -1, output_type=tf.int32)
 

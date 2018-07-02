@@ -16,6 +16,7 @@ def get_args():
     parser.add_argument('--target_epoch', type=int, default=500, help='Target training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
     parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
+    parser.add_argument('--light', action='store_true', help='Either to use light model or not')
     parser.add_argument('--finetune_level', type=int, default=2,
                         help='0: without data augmentation(DA), 1: with DA, 2: with seaweed augmentation')
 
@@ -28,6 +29,7 @@ def main(args):
     LOG_STEP = 50
     SAVE_STEP = 500
     LOG_ALL_TRAIN_PARAMS = False
+    MODEL_NAME = 'TS{}.ckpt'.format('-light' if args.light else '')
     LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-4
 
     with tf.variable_scope('Data_Generator'):
@@ -39,8 +41,8 @@ def main(args):
         class_num = len(data_reader.dict_class.keys())
 
     network = model.StudentNetwork(len(data_reader.dict_class.keys()))
-    logits, prelogits = network.build_network(train_x, reuse=False, is_train=True)
-    v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1)
+    logits, prelogits = network.build_network(train_x, reuse=False, is_train=True, light=args.light)
+    v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1, light=args.light)
 
     use_center, use_pln, use_triplet, use_him = [False for _ in range(4)]
     pln_factor = center_factor = 0
@@ -90,7 +92,7 @@ def main(args):
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
     if args.load:
-        saver.restore(sess, args.weight_path + 'student.ckpt')
+        saver.restore(sess, args.weight_path + MODEL_NAME)
 
     train_writer = tf.summary.FileWriter(args.log_path, sess.graph)
     merged = tf.summary.merge_all(tf.GraphKeys.SUMMARIES)
@@ -114,8 +116,8 @@ def main(args):
             start_time = time.time()
 
         if step % SAVE_STEP == 0:
-            saver.save(sess, args.weight_path + 'student.ckpt', step)
-            print('[Weights saved] weights saved at {}'.format(args.weight_path + 'student'))
+            saver.save(sess, args.weight_path + MODEL_NAME, step)
+            print('[Weights saved] weights saved at {}'.format(args.weight_path + MODEL_NAME))
 
         step += 1
 

@@ -32,7 +32,7 @@ def main(args):
     LOG_STEP = 250
     SAVE_STEP = 500
     LOG_ALL_TRAIN_PARAMS = False
-    MODEL_NAME = 'TS.ckpt'
+    MODEL_NAME = 'TS{}.ckpt'.format('-light' if args.light else '')
     LEARNING_RATE = 1e-4 / args.finetune_level if args.finetune_level > 1 else 1e-3
 
     with tf.variable_scope('Data_Generator'):
