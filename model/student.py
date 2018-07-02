@@ -6,7 +6,7 @@ class StudentNetwork(object):
     def __init__(self, num_of_class):
         self.num_of_class = num_of_class
 
-    def build_network(self, in_batch, reuse, is_train, dropout_keep_prob=.8):
+    def build_network(self, in_batch, reuse, is_train, dropout_keep_prob=.8, light=False):
         dropout_keep_prob = 1 if not is_train else dropout_keep_prob
         with tf.variable_scope('SqueezeNeXt', reuse=reuse):
             bn_param = {
@@ -16,6 +16,7 @@ class StudentNetwork(object):
                 'is_training': is_train,
                 'activation_fn': tf.nn.relu
             }
+            g = lambda x: int(x / 2) if light else x
             with slim.arg_scope([slim.conv2d], normalizer_fn=slim.batch_norm, normalizer_params=bn_param,
                                 biases_initializer=None, weights_regularizer=slim.l2_regularizer(0.0005),
                                 activation_fn=tf.identity):
@@ -23,23 +24,23 @@ class StudentNetwork(object):
                 endpoint = tf.nn.max_pool(endpoint, [1, 3, 3, 1], [1, 2, 2, 1], 'SAME')
 
                 with tf.variable_scope('Util_1'):
-                    endpoint = slim.conv2d(endpoint, 64, 1, 1)
+                    endpoint = slim.conv2d(endpoint, g(64), 1, 1)
                     for i in range(2):
-                        endpoint = self.squeeze_next_block(endpoint, 64, i)
+                        endpoint = self.squeeze_next_block(endpoint, g(64), i)
 
                 with tf.variable_scope('Util_2'):
-                    endpoint = slim.conv2d(endpoint, 128, 1, 2)
+                    endpoint = slim.conv2d(endpoint, g(128), 1, 2)
                     for i in range(4):
-                        endpoint = self.squeeze_next_block(endpoint, 128, i)
+                        endpoint = self.squeeze_next_block(endpoint, g(128), i)
 
                 with tf.variable_scope('Util_3'):
-                    endpoint = slim.conv2d(endpoint, 256, 1, 2)
+                    endpoint = slim.conv2d(endpoint, g(256), 1, 2)
                     for i in range(14):
-                        endpoint = self.squeeze_next_block(endpoint, 256, i)
+                        endpoint = self.squeeze_next_block(endpoint, g(256), i)
 
                 with tf.variable_scope('Util_4'):
-                    endpoint = slim.conv2d(endpoint, 512, 1, 2)
-                    endpoint = self.squeeze_next_block(endpoint, 512, 0)
+                    endpoint = slim.conv2d(endpoint, g(512), 1, 2)
+                    endpoint = self.squeeze_next_block(endpoint, g(512), 0)
 
                 endpoint = slim.conv2d(endpoint, 128, 1, 1, scope='post_conv')
                 endpoint = tf.reduce_mean(endpoint, [1, 2], keepdims=False)

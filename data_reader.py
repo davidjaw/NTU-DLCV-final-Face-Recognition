@@ -42,8 +42,16 @@ class DataReader(object):
         self.seed = random_seed
         self.train_data_raw, self.valid_data_raw = [None, None]
         self.dict_instance_id = {'train': {}, 'valid': {}}
-        self.train_img_path, self.train_label, self.valid_img_path, self.valid_label, self.dict_id, self.dict_class = \
-            self._prepare_data()
+        if os.path.exists('./cache/') and os.path.exists('./cache/cache.npy'):
+            self.train_img_path, self.train_label, self.valid_img_path, self.valid_label, self.dict_id, self.dict_class\
+                = np.load('./cache/cache.npy')
+        else:
+            self.train_img_path, self.train_label, self.valid_img_path, self.valid_label, self.dict_id, self.dict_class\
+                = self._prepare_data()
+            if not os.path.exists('./cache/'):
+                os.mkdir('./cache/')
+            np.save('./cache/cache.npy', [self.train_img_path, self.train_label, self.valid_img_path, self.valid_label,
+                                          self.dict_id, self.dict_class])
 
     def _prepare_data(self):
         def read_ground_truth(file_path):
