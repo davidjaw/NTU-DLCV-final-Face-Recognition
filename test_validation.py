@@ -3,6 +3,7 @@ import model
 from data_reader import DataReader
 import argparse
 import numpy as np
+import os
 
 
 def get_args():
@@ -16,6 +17,7 @@ def get_args():
 
 
 def main(args):
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     if '{}' in args.model_name:
         args.model_name = args.model_name.format('teacher' if args.is_teacher else 'student')
     print(args)
