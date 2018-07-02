@@ -12,8 +12,8 @@ def get_args():
     parser.add_argument('--data_path', type=str, default='./dlcv_final_2_dataset/', help='path to dataset folder')
     parser.add_argument('--log_path', type=str, default='./log/', help='path to logfile folder')
     parser.add_argument('--weight_path', type=str, default='./log/', help='path to store/read weights')
-    parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
-    parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
+    parser.add_argument('--batch_size', type=int, default=100, help='Number of instance in each training batch')
+    parser.add_argument('--target_epoch', type=int, default=500, help='Target training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
     parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
     parser.add_argument('--finetune_level', type=int, default=2,
@@ -78,7 +78,7 @@ def main(args):
     with tf.control_dependencies(update_ops):
         train_op = optim.minimize(loss)
 
-    train_params = list(filter(lambda x: 'Adam' not in x.op.name, tf.contrib.slim.get_variables()))
+    train_params = list(filter(lambda x: 'Adam' not in x.op.name and 'SqueezeNeXt' in x.op.name, tf.contrib.slim.get_variables()))
     saver = tf.train.Saver(var_list=train_params)
 
     if LOG_ALL_TRAIN_PARAMS:

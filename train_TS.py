@@ -10,12 +10,15 @@ def get_args():
     parser = argparse.ArgumentParser(description='Face recognition')
     parser.add_argument('--data_path', type=str, default='./dlcv_final_2_dataset/', help='path to dataset folder')
     parser.add_argument('--log_path', type=str, default='./log/', help='path to logfile folder')
-    parser.add_argument('--weight_path', type=str, default='./log/', help='path to store/read weights')
-    parser.add_argument('--t_weight_path', type=str, default='./weight/', help='path to teach network weights')
-    parser.add_argument('--t_model_name', type=str, default='teacher.ckpt', help='filename of teacher network weights')
-    parser.add_argument('--batch_size', type=int, default=100, help='size of training batch')
-    parser.add_argument('--target_epoch', type=int, default=500, help='size of training epoch')
+    parser.add_argument('--weight_path', type=str, default='./log/', help='path to store/read trained weights')
+    parser.add_argument('--t_weight_path', type=str, default='./weight/',
+                        help='path to trained teacher network\'s weightfile')
+    parser.add_argument('--t_model_name', type=str, default='teacher.ckpt',
+                        help='filename of the teacher network\'s weightfile')
+    parser.add_argument('--batch_size', type=int, default=100, help='Number of instance in each training batch')
+    parser.add_argument('--target_epoch', type=int, default=500, help='Target training epoch')
     parser.add_argument('--load', action='store_true', help='Either to load pre-train weights or not')
+    parser.add_argument('--light', action='store_true', help='Either to use light model or not')
     parser.add_argument('--optim_type', type=str, default='adam', help='the type of optimizer')
     parser.add_argument('--finetune_level', type=int, default=2,
                         help='0: without data augmentation(DA), 1: with DA, 2: with seaweed augmentation')
@@ -45,8 +48,8 @@ def main(args):
     teacher_logits = tf.stop_gradient(teacher_logits)
 
     network = model.StudentNetwork(len(data_reader.dict_class.keys()))
-    logits, prelogits = network.build_network(train_x, reuse=False, is_train=True)
-    v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1)
+    logits, prelogits = network.build_network(train_x, reuse=False, is_train=True, light=args.light)
+    v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1, light=args.light)
 
     with tf.variable_scope('SqueezeNeXt/Embedding'):
         t_prelogits = teacher_dict['PreLogitsFlatten']
