@@ -200,6 +200,8 @@ class DataReader(object):
         import cv2
         for i in range(len(self.dict_class.keys())):
             class_id = self.dict_class[i]
+            if class_id != '3317':
+                continue
             train_imgs = list(filter(lambda x: x[1] == class_id, self.train_data_raw))
             valid_imgs = list(filter(lambda x: x[1] == class_id, self.valid_data_raw))
             train_imgs = [cv2.imread(self.data_path + 'train/' + x[0]) for x in train_imgs]
@@ -211,8 +213,17 @@ class DataReader(object):
 
             # train_imgs = np.concatenate(train_imgs, 1)
             # valid_imgs = np.concatenate(valid_imgs, 1)
-            train_imgs = np.concatenate([x[h*2:h*4, w:w*4] for x in train_imgs], 1)
-            valid_imgs = np.concatenate([x[h*2:h*4, w:w*4] for x in valid_imgs], 1)
+            try:
+                valid_imgs = np.concatenate([x[h*2:h*4, w:w*4] for x in valid_imgs], 1)
+            except:
+                valid_imgs = np.zeros([h*4-h*2, w*4-w, 3], np.uint8)
+
+            while len(train_imgs) < 32:
+                train_imgs.append(np.zeros(train_imgs[0].shape, np.uint8))
+            train_imgs = np.asarray(train_imgs)
+
+            train_imgs = np.concatenate([train_imgs[i::4, h*2:h*4] for i in range(4)], 1)
+            train_imgs = np.concatenate([train_imgs[i::8, :, w:w*4] for i in range(8)], 2)[0]
 
             cv2.imshow('train_img', train_imgs)
             cv2.imshow('valid_img', valid_imgs)
@@ -220,7 +231,9 @@ class DataReader(object):
 
 
 # import cv2
+# os.remove('./cache/cache.npy')
 # data_reader = DataReader('./dlcv_final_2_dataset/')
+# data_reader.debug_cv()
 # x, y = data_reader.get_instance(100, 'train', 2)
 # x = x / 2 + .5
 # debug_img_factor = 5

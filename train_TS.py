@@ -52,7 +52,7 @@ def main(args):
     v_logits, v_prelogits = network.build_network(valid_x, reuse=True, is_train=True, dropout_keep_prob=1, light=args.light)
 
     with tf.variable_scope('SqueezeNeXt/Embedding'):
-        t_prelogits = teacher_dict['PreLogitsFlatten']
+        t_prelogits = tf.stop_gradient(teacher_dict['PreLogitsFlatten'])
         s_embed = slim.fully_connected(prelogits, t_prelogits.get_shape().as_list()[-1], activation_fn=tf.identity)
         s_embed_pred = slim.fully_connected(s_embed, len(data_reader.dict_class.keys()), activation_fn=tf.identity)
 
