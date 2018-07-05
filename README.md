@@ -81,8 +81,7 @@ ___
 * P. T. refers to Performance on Test set (scores on Kaggle)
 ___
 ## Usage
-* Use `train_teacher.py` to train teacher network with [args]()
-* Use `train_student.py` to train student under normal training policy with [args]()
-* Use `train_TS.py` to train student network under TS leraning policy with [args]()
+* Use `train_teacher.py` to train teacher network with [args](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/train_teacher.py#L12-L20)
+* Use `train_student.py` to train student under normal training policy with [args](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/train_student.py#L12-L21)
+* Use `train_TS.py` to train student network under TS leraning policy with [args](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/train_TS.py#L11-L24)
     * Trained teacher is required
-
