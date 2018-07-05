@@ -36,6 +36,7 @@ def main(args):
     else:
         network = model.StudentNetwork(len(data_reader.dict_class.keys()))
         logits, prelogits = network.build_network(test_x, False, False, light=args.light)
+    embed_dim = prelogits.shape.as_list()[-1]
 
     train_params = tf.contrib.slim.get_variables()
     saver = tf.train.Saver(var_list=train_params)
@@ -50,7 +51,7 @@ def main(args):
     class_num = 20
     np_train_img_path = np.asarray(data_reader.train_img_path)
     np_train_label = np.asarray(data_reader.train_label)
-    np_total_feature = np.zeros([class_num, 16, 1792], np.float32)
+    np_total_feature = np.zeros([class_num, 16, embed_dim], np.float32)
 
     colors = ['aqua', 'azure', 'fuchsia', 'black', 'blue', 'brown', 'chartreuse', 'coral', 'cyan', 'darkgreen', 'indigo', 'lime', 'lightgreen', 'red', 'maroon', 'sienna', 'tan', 'teal', 'tomato', 'pink', 'olive']
     for i in range(class_num):
@@ -61,15 +62,15 @@ def main(args):
         np_imgs = np_imgs[:, h*2:h*4, w:w*4, :]
         np_class_features = sess.run(prelogits, feed_dict={test_x_p: np_imgs})
         np_total_feature[i] = np_class_features
-    np_total_feature = np.reshape(np_total_feature, [16 * class_num, 1792])
+    np_total_feature = np.reshape(np_total_feature, [16 * class_num, embed_dim])
     tsne_embed = TSNE(n_components=2, random_state=92).fit_transform(np_total_feature)
     tsne_embed = np.reshape(tsne_embed, [class_num, 16, 2])
     plt.style.use('default')
     for i in range(class_num):
         class_embbed_feature = tsne_embed[i, :, :]
         plt.plot(class_embbed_feature[:, 0], class_embbed_feature[:, 1], 'o', markersize=2.2, color=colors[i])
-    plt.title('tSNE for pre-logits space')
-    plt.savefig('out/out_{}.jpg'.format(args.model_name))
+    plt.title('tSNE for pre-logits space ({})'.format(args.model_name[:-5]))
+    plt.savefig('out/latent_{}.jpg'.format(args.model_name))
 
 
 if __name__ == '__main__':

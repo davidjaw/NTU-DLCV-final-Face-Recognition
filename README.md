@@ -32,6 +32,9 @@ ___
       * Triplet loss is included
       * Learning rate is decayed to 5e-5
       * Weighting of center loss, PLN loss is increased to 1e-4
+
+![](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/figures/train_teacher.png)
+
 ___
 ### Compressed model - SqueezeNeXt
 * ["SqueezeNext: Hardware-Aware Neural Network Design"](https://arxiv.org/abs/1803.10615)
@@ -40,6 +43,8 @@ ___
 ### Teacher Student training
 * [Github](https://github.com/EricHe98/Teacher-Student-Training)
   * Related paper: [Distilling the Knowledge in a Neural Network(2015)](https://arxiv.org/abs/1503.02531?context=cs)
+
+![](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/figures/train_TS.png)
 ___
 ## Result - Model comparison
 |  | Model size | # of params | P. V. | P. T. | fps | weights |
@@ -52,6 +57,11 @@ ___
 * T-S refers to Teacher-Student training strategy
 * P. V. refers to Performance on Validation set
 * the T-S weight is for fine-tuning, thus contains weights of embedding layer
+
+
+![](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/figures/latent_teacher.jpg)
+![](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/figures/latent_TS.jpg)
+![](https://github.com/davidjaw/DLCV-2018-final_project/blob/master/figures/latent_TS-light.jpg)
 ___
 ## Ablation study
 | Basic A. | Seaweed | Center L. | P. N. L. | H. I. M. | Triplet L. | P. V. | P. T. |
